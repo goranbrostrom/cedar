@@ -1,0 +1,1171 @@
+\documentclass[a4paper]{beamer}
+\usepackage[utf8]{inputenc}
+
+\usepackage{graphicx}
+\newcommand{\R}{{\bf R}}
+\usepackage{url}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{color}
+
+\newcommand{\emp}[1]{\textcolor{blue}{#1}}
+\newcommand{\bx}{\ensuremath{\mathbf{x}}}
+\newcommand{\bbeta}{\ensuremath{\boldsymbol{\beta}}}
+
+\usetheme{Singapore}% best choice.
+  \setbeamercovered{transparent}%
+
+
+<<include=FALSE>>=
+library(knitr)
+opts_chunk$set(
+##engine='R',dev='postscript',dev='pdf',fig.width=10,fig.height=6.5,strip.white=all
+engine='R',dev='pdf',fig.width=10,fig.height=5
+)
+@
+
+
+<<include=FALSE>>=
+library(knitr)
+opts_chunk$set(
+fig.path='figs/',include=TRUE,cache=TRUE
+)
+@
+
+
+
+\title{Cox Regression}
+\date{June 4, 2015}
+\subtitle{Demography and Event History Analysis \\ CEDAR Umeå June 1--12 2015}
+%\email{gb@stat.umu.se}
+
+\author{G\"oran Brostr\"om}
+
+
+%\DefaultTransition{Split}
+\begin{document}
+
+%\maketitle
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+%\begin{frame}\frametitle{Outline}
+%  \tableofcontents
+%\end{frame}
+
+
+
+%---------------------------------------------------------SLIDE-----------
+
+\begin{frame}{Proportional hazards (PH), two groups}
+
+\begin{eqnarray*}
+h_0(t) &\sim& \mbox{group 0} \\
+h_1(t) &\sim& \mbox{group 1}
+\end{eqnarray*}
+
+
+\underline{Proportional hazards (PH) \emp{model}:} 
+\begin{equation*}
+\emp{h_1(t) = \psi h_0(t)}, \quad t \ge 0, \; \psi > 0.
+\end{equation*}
+
+\vspace{\baselineskip}
+
+Note that \emp{$\psi$ is independent of $t$}.
+
+\end{frame}
+
+\begin{frame}[fragile]{A graph}
+\scriptsize
+<<figPH,fig.height=5,message=FALSE>>=
+library(eha)
+curve(hlnorm(x, 1/3, 1), 0, 10, col = "blue",
+      ylab = "Proportional hazards", xlab = "t")
+curve(hlnorm(x, 1/3, 1) * 0.75, 0, 10, add = TRUE, col = "red")
+abline(h = 0); abline(v = 0)
+text(5, 0.5, "h(t)", cex = 1.5); 
+text(5, 0.15, "0.75 h(t)", col = "red", cex = 1.5)
+@
+
+\end{frame}
+
+\begin{frame}{Proportional hazards (PH)}
+
+Assume \emp{$n$ observations} numbered $1, 2, \ldots, n$. Let
+\begin{equation*}
+x_i = \left\{ \begin{array}{ll}
+                0, & \mbox{individual $i$ in group 0} \\
+                1, & \mbox{individual $i$ in group 1}
+              \end{array} \right.
+\end{equation*}
+
+
+Then,
+\begin{equation*}
+h_{x_i}(t) = \psi ^{x_i} h_0(t)
+\end{equation*}
+
+Write $h(t; x_i)$ instead of $h_{x_i}(t)$, and $e^{\beta}$
+instead of $\psi$:
+\begin{equation*}
+\emp{h(t; x_i) = h_0(t) e^{\beta x_i}} = \left\{ \begin{array}{ll}
+                                   h_0(t), & x_i = 0 \\
+                                   h_0(t) e^\beta, & x_i = 1
+                                  \end{array}\right., \quad t \ge 0.
+\end{equation*}
+
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+
+%-------------------------------------------------------------SLIDE-----
+
+%% \begin{frame}{Two groups and more}
+
+%% Can we generalize to $(k + 1)$ groups, $k \ge 2$?
+
+%% Yes!
+
+%% \begin{eqnarray*}
+%% h_0(t) &\sim& \mbox{group 0} \\
+%% h_1(t) &\sim& \mbox{group 1} \\
+%% \cdots & & \cdots \\
+%% h_k(t) &\sim& \mbox{group k}
+%% \end{eqnarray*}
+
+%% \underline{Model:} $h_j(t) = \psi_j h_0(t), \quad t \ge 0$, $j = 1, 2,
+%% \ldots, k$.
+
+%% \end{frame}
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+%% \begin{frame}{Coding of indicators}
+%% With $(k + 1)$ groups, we need $k$ indicators. Let
+%% \begin{equation*}
+%% \mathbf{x}_i = (x_{i1}, x_{i2}, \ldots, x_{ik}), \; i = 1, \ldots, n
+%% \end{equation*}
+%% Then
+%% \begin{eqnarray*}
+%% \mathbf{x}_i = (0, 0, \ldots, 0) & \Rightarrow & \mbox{Indvidual $i$ in
+%% group 0} \\
+%% \mathbf{x}_i = (1, 0, \ldots, 0) & \Rightarrow & \mbox{Indvidual $i$ in
+%% group 1} \\
+%% \mathbf{x}_i = (0, 1, \ldots, 0) & \Rightarrow & \mbox{Indvidual $i$ in
+%% group 2} \\
+%% \cdots & & \cdots \\
+%% \mathbf{x}_i = (0, 0, \ldots, 1) & \Rightarrow & \mbox{Indvidual $i$ in
+%% group k}
+%% \end{eqnarray*}
+
+%% \emp{NOTE:} You should \emp{never} do this in practice! Use \emp{factor}s!
+%% \end{frame}
+%-----------------------------------------------------------------------
+
+
+%------------------------------------------------------------SLIDE------
+\begin{frame}[fragile]{General regression model}
+
+Data: $(t_i; \bx_i), \; i = 1, \ldots, n$, with $\bx_i = (x_{i1},
+\ldots, x_{ik})$. If
+
+\begin{eqnarray*}
+h(t; \mathbf{x}_i) &=& h_0(t) e^{x_{i1}\beta_1 + x_{i2} \beta_2 + \cdots
+x_{ik} \beta_k}\\ &=& h_0(t) e^{\mathbf{x}_i \boldsymbol{\beta}},
+\end{eqnarray*}
+
+with $\bbeta = (\beta_1, \beta_2, \ldots, \beta_k)$, then, for any $i, j$,
+\begin{equation*}
+\frac{h(t; \bx_i)}{h(t; \bx_j)} = \frac{h_0(t) e^{\bx_i \bbeta}}  {h_0(t)
+    e^{\bx_j \bbeta}}  = e^{(\bx_i - \bx_j) \bbeta}
+\end{equation*}  
+
+\emp{independent of $t$}, and so \emp{PH}!
+\end{frame}
+%-----------------------------------------------------------------------
+
+
+%------------------------------------------------------------SLIDE------
+
+\begin{frame}{Cox's proportional hazards model}
+
+\underline{Generalization:} Let the components of $\mathbf{x}_i$ take
+\emp{any value}, and
+\begin{itemize}
+\item Data: \emp{$(t_{i0}, t_i, d_i, \mathbf{x}_i), \; i = 1, \ldots, n$}, where
+    \begin{itemize}
+       \item $t_{i0} $ is the \emp{left truncation time point}.
+       \item $t_i $ is the \emp{end time point}.
+       \item $d_i $ is the \emp{``event indicator''} ({\tt TRUE} if event,
+         else {\tt FALSE}).
+       \item $\mathbf{x}_i $ is a vector of \emp{explanatory variables}.
+     \end{itemize}
+\item Model:
+
+%\begin{center}
+$h(t; \mathbf{x}_i) = h_0(t) e^{\mathbf{x}_i
+\boldsymbol{\beta}}$
+%\end{center}
+\end{itemize}
+
+This is a \emp{regression model} where
+\begin{itemize}
+\item the \emp{response variable} is \emp{$(t_0,
+t, d)$} (a \emp{survival object})
+\item and the \emp{explanatory variable} is $\mathbf{x}$.
+\end{itemize}
+
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+%-------------------------------------------------------------SLIDE-----
+
+%% \begin{frame}{Time dependent covariate}
+%% \underline{Example:}
+%% \begin{itemize}
+%% \item $x = \mbox{\bf civil status}$ is an explanatory variable in a
+%% mortality study. Changes value from 0 to 1 at marriage.
+%% \item Solution: Create \emp{two} records, each with a \emp{fixed} value
+%% of {\bf civil status}:
+%% \begin{itemize}
+%% \item Original record: $(t_0, t, d, x(s), t_0 < s \le t)$, married
+%% at time $T$, $t_0 < T < t$:
+%% $$
+%% x(s) = \left\{\begin{array}{ll}
+%%               \text{unmarried}, & s \le T \\
+%%               \text{married}, & s > T
+%%               \end{array}\right.
+%% $$
+%% \item First new record: $(t_0, T, 0, 0)$, \emp{always censored}.
+%% \item Second new record: $(T, t, d, 1)$.
+%% \end{itemize}
+%% \end{itemize}
+%% \end{frame}
+
+
+\begin{frame}[fragile]\frametitle{Time dependent covariate}
+  \begin{center}
+  \begin{tabular}{c|cccc}
+    id & enter & exit & event & civil status (x) \\ \hline
+    23 & 0 & 21 & 0 & \tt unmarried \\
+    23 & 21 & 35 & 1 & \tt married
+    \end{tabular}
+  \end{center}
+<<echo=FALSE>>=
+plot(1, 2, type = "n", xlim = c(0, 40), ylim = c(0, 3), xlab = "Age", ylab = "", yaxt="n", axes = FALSE)
+axis(1, at = c(0, 21, 35), cex.axis = 1.5)
+lines(c(0, 21), c(1,1), col = "red")
+points(21, 1, pch = "c", cex = 2)
+lines(c(21, 35), c(2, 2), col= "blue")
+points(21, 2, pch = "|")
+points(35.5, 2, pch = "+", cex = 2)
+text(10, 1.2, labels = "x = unmarried", col = "red", cex = 2)
+text(30.2, 2.2, labels = "x = married", col = "blue", cex = 2)
+abline(v = 0)
+abline(v = 21, lty = 3)
+@
+
+\end{frame}
+
+%------------------------------------------------------------------------
+
+\begin{frame}{Explanatory covariates}
+
+Distinguish between \emp{types} of covariates:
+\begin{description}
+\item[numeric:] taking values in an \emp{interval} (\emp{mother's age}, etc).
+\item[factor:] taking a \emp{finite} number of values (\emp{civil
+status}, etc).
+%\item[Indicator:] a factor taking \emp{two} values (\emp{Sex}).
+\end{description}
+
+\begin{itemize}
+\item Values taken by a (continuous co)variate are \emp{ordered}.
+\begin{itemize} 
+\item      The \emp{effect} on the response is ordered in the \emp{same} or
+\emp{reversed} order.
+\end{itemize}
+\item Values taken by a \emp{factor} are \emp{unordered}.
+  \begin{itemize}
+    \item There exist ordered factors in \R.
+      \end{itemize}
+\end{itemize}
+
+
+What to do if \emp{the effect} of a (numeric) covariate is \emp{not} ordered?
+
+\end{frame}
+
+%------------------------------------------------------------------------
+
+%%%%%\end{document}
+%------------------------------------------------------------SLIDE-------
+
+\begin{frame}{Making a factor of a variate}
+
+\underline{{\bf Example}: Infant mortality}
+
+\begin{itemize}
+\item \emp{Young} mother means high risk.
+\item \emp{Old} mother means high risk.
+\item \emp{``In-between-aged''} mother means low risk.
+\item Risk order not the same (or reverse) as age-order.
+\end{itemize}
+
+Solution: \emp{``Factorize''}; Let, for instance,
+\begin{equation*}
+\mbox{\bf mother's age} = \left\{\begin{array}{ll}
+                           \mbox{low}, & 15 < \mbox{\bf age} \le 25 \\
+                           \mbox{middle}, & 25 < \mbox{\bf age} \le 35 \\
+                           \mbox{high}, & 35 < \mbox{\bf age}
+                            \end{array} \right.
+\end{equation*}
+
+\end{frame}
+
+%------------------------------------------------------------------------
+
+
+\begin{frame}[fragile]{The package skel15}
+\scriptsize
+<<skel15, message=FALSE>>=
+library(skel15)
+obs$enter <- round(obs$enter, 3)
+obs$exit <- round(obs$exit, 3)
+obs$birthdate <- round(obs$birthdate, 3)
+names(obs)
+head(obs[, c("id", "sex", "enter", "exit", "event", "mid")])
+@
+
+\end{frame}
+
+\begin{frame}[fragile]{Infant mortality data}
+\scriptsize
+<<IMR>>=
+
+infants <- age.window(obs, c(0, 1))
+infants <- infants[!is.na(obs$mid), ]
+infants <- infants[, c("id", "sex", "birthdate", "enter", 
+                       "exit", "event", "parity", "mid")]
+dim(infants)
+infants <- infants[infants$mid %in% obs$id, ]
+dim(infants)
+infants <- infants[order(infants$mid, infants$parity), ]
+rownames(infants) <- NULL # Remove row names
+head(infants)
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{Mother's age (match!!)}
+\scriptsize
+<<m.age>>=
+indx <- match(infants$mid, obs$id)
+(infants$mid[1] == obs$id[indx[1]]) & 
+   (infants$mid[2] == obs$id[indx[2]]) # and so on ...
+infants$m.birthdate <- obs$birthdate[indx]
+infants$m.age <- with(infants, birthdate - m.birthdate)
+head(infants)
+@
+
+\end{frame}
+
+\begin{frame}[fragile]{Summary of 'infants'}
+\scriptsize
+<<suminf>>=
+summary(infants[, c("sex", "birthdate", "enter", "exit", "event", 
+                    "parity", "m.age")])
+@
+
+Problems with \emp{\tt m.age}?
+\end{frame}
+
+\begin{frame}[fragile]{Check mother's age}
+\scriptsize
+<<checkmage>>=
+infants[infants$m.age < 15, c("id", "mid", "m.age")]
+@
+Turns out that the two first are 'data errors': remove
+<<removerec>>=
+infants <- infants[infants$m.age > 10, ]
+levels(infants$sex)
+levels(infants$sex) <- c("boy", "girl")
+@
+
+\end{frame}
+
+\begin{frame}[fragile]{Mother's age as numeric}
+\scriptsize
+<<moagnum>>=
+fit.l <- coxreg(Surv(enter, exit, event) ~ sex + m.age, data = infants)
+fit.l
+@
+
+\end{frame}
+
+\begin{frame}[fragile]{Pretty-printing with \LaTeX; L-R test}
+\scriptsize
+<<moagnum2,results='asis'>>=
+dr.l <- drop1(fit.l, test = "Chisq")
+ltx(fit.l, dr = dr.l, digits = 4)
+@
+
+\end{frame}
+
+
+\begin{frame}{Test of Nested Models}
+\underline{Example:} (two competing models)
+
+\begin{itemize}
+\item ${\cal M}_2:\; h(t; (x_1, x_2)) = h_0(t) \exp(\beta_1 x_1 +
+\beta_2 x_2)$
+\item ${\cal M}_1:\; h(t; (x_1, x_2)) = h_0(t) \exp(\beta_1 x_1)$:
+$x_2$ has no effect.
+\item
+ ${\cal M}_1$ is a special case of ${\cal M}_1$ ($\beta_2 = 0$).
+\item ${\cal M}_1$ is \emp{nested} in ${\cal M}_2$.
+\item \emp{Assume} that ${\cal M}_2$ is \emp{true}.
+\item Test the hypothesis $H_0: \; {\cal M}_1$ is true (as well).
+\item Same as $H_0;\; \beta_2 = 0$.
+\end{itemize}
+
+\end{frame}
+
+
+%-----------------------------------------------------------------------
+
+\begin{frame}{The Likelihood Ratio Test}
+
+\begin{itemize}
+
+\item Maximize $\log L(\beta_1, \beta_2)$ under ${\cal M}_2$; gives $\log
+L(\hat{\beta}_1, \hat{\beta}_2)$.
+
+\item Maximize $\log L(\beta_1, \beta_2)$ under ${\cal M}_1$, that
+is, maximize $\log L(\beta_1, 0)$; gives $\log L(\beta_1^*, 0)$.
+
+\item Test statistic:
+\begin{equation*}
+T = 2\big(\log L(\hat{\beta}_1, \hat{\beta}_2) - \log L(\beta_1^*,
+0)\big)
+\end{equation*}
+
+\item \emp{Under} $H_0$, $T$ has a $\chi^2$ (chi-square)
+distribution with $d$ degrees of freedom: $T \sim \chi^2(d)$.
+\item $d$ is the difference in numbers of parameters in the two
+competing models, in this case $2-1=1$.
+\item These results are \emp{large sample approximations}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{{\tt drop1} and the L-R test}
+\small 
+<<drop1lr>>=
+dr.l
+@   
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Mother's age as a factor}
+\scriptsize
+<<moagfac,results='asis'>>=
+infants$m.age.grp <- cut(infants$m.age, c(10, 25, 35, 51))
+fit.o <- coxreg(Surv(enter, exit, event) ~ sex + m.age.grp, data = infants)
+dr <- drop1(fit.o, test = "Chisq")
+ltx(fit.o, digits = 4)
+@
+
+\end{frame}
+
+\begin{frame}[fragile]{Relevel m.age.grp}
+
+\scriptsize
+<<relevel,results='asis'>>=
+infants$m.age.grp <- relevel(infants$m.age.grp, ref = "(25,35]")
+fit <- coxreg(Surv(enter, exit, event) ~ sex + m.age.grp, data = infants)
+dr <- drop1(fit, test = "Chisq")
+ltx(fit, digits = 4)
+@
+
+\end{frame}
+
+%% <<getsta,results='none',echo=FALSE>>=
+%% library(stargazer)
+%% @ 
+%% \begin{frame}[fragile]{How NOT to present results}
+
+%% \scriptsize  
+%% <<starga,results='asis',messages=FALSE,echo=FALSE>>=
+%% #library(stargazer)
+%% stargazer(fit.o, fit, header = FALSE)
+%% @   
+
+%% \end{frame} 
+
+\begin{frame}[fragile]{How NOT to present results}
+
+\scriptsize  
+
+\begin{table}[!htbp] \centering 
+  \caption{} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}}lcc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+% & \multicolumn{2}{c}{\textit{Dependent variable:}} \\ 
+%\cline{2-3} 
+%\\[-1.8ex] & \multicolumn{2}{c}{enter} \\ 
+\\[-1.8ex] & (1) & (2)\\ 
+\hline \\[-1.8ex] 
+ sexwoman & $-$0.214$^{***}$ & $-$0.214$^{***}$ \\ 
+  & (0.022) & (0.022) \\ 
+  & & \\ 
+ m.age.grp(25,35] & $-$0.088$^{***}$ & (reference) \\ 
+  & (0.032) &  \\ 
+  & & \\ 
+ m.age.grp(10,25] & (reference) & 0.088$^{***}$ \\ 
+  &  & (0.032) \\ 
+  & & \\ 
+ m.age.grp(35,51] & 0.084$^{**}$ & 0.172$^{***}$ \\ 
+  & (0.034) & (0.024) \\ 
+  & & \\ 
+\hline \\[-1.8ex] 
+Observations & 83,931 & 83,931 \\ 
+Log Likelihood & $-$91,092.800 & $-$91,092.800 \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{2}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
+\end{tabular} 
+\end{table} 
+
+
+\end{frame} 
+
+\begin{frame}[fragile]{How to present results}
+\small
+<<howto,results='asis'>>=
+ltx(fit, dr = dr, digits = 4)
+@   
+
+\end{frame}
+
+\begin{frame}[fragile]{How to present results}
+\small
+<<howtodo,results='asis'>>=
+ltx(fit, dr = dr, digits = 4)
+@   
+
+\end{frame}
+
+\begin{frame}[fragile]{A graphical presentation}
+\scriptsize
+<<agraph>>=
+bars <- exp(coef(fit))[-1] - 1
+bars <- c(bars[1], 0, bars[2])
+names(bars) <- c("(11, 25]", "(25-35]", "(35-51]") 
+barplot(100 * bars, ylab = "Excess mortality (per cent)", 
+        xlab = "Mother's age")
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{Or finer}
+  
+<<finer>>=
+cuts <- c(11, 18, seq(21, 51, by = 3))
+infants$m.grp <- cut(infants$m.age, cuts)
+res <- coxreg(Surv(enter, exit, event) ~ m.grp, data = infants)
+plot(c(0, res$coef), type = "b")
+@ 
+
+\end{frame}  
+
+\begin{frame}[fragile]{cox.zph}
+\scriptsize
+<<finerzph>>=
+res <- coxreg(Surv(enter, exit, event) ~ m.age, data = infants)
+czph <- cox.zph(res)
+plot(czph, resid = FALSE, df = 6)
+@ 
+
+\end{frame}  
+
+
+\begin{frame}[fragile]{Plot cumulative hazards}
+\scriptsize
+<<cumhazgrp,fig.height=5>>=
+fit0 <- coxreg(Surv(enter, exit, event) ~ sex + strata(m.age.grp), data = infants, hazards = TRUE)
+plot(fit0, col = 1:3, xlab = "Age")
+@
+
+\end{frame}
+
+\begin{frame}[fragile]{Plot cumulative hazards, log-log scale}
+\scriptsize
+<<cumhazgrpll,fig.height=5>>=
+plot(fit0, col = 1:3, xlab = "Age", fn = "loglog")
+@
+
+\end{frame}
+
+%\end{document}
+
+\begin{frame}[fragile]{Likelihood Ratio Tests (LRT)}
+
+\scriptsize
+<<relevellrt,results='asis'>>=
+ltx(fit, dr = dr, digits = 4)
+@
+\end{frame}
+
+\begin{frame}[fragile]{Formal test of proportionality}
+\scriptsize
+<<zph>>=
+(zph.l <- cox.zph(fit.l))
+(zph <- cox.zph(fit))
+@
+
+Clearly, the effect of mother's age on infant mortality is \emp{not proportional}. It is the \emp{youngest mothers} that deviates. Why is it so?
+
+\end{frame}
+
+\begin{frame}[fragile]{PH test graphically}
+\scriptsize  
+<<zphgraph,fig.height = 4>>=
+oldpar <- par(mfrow = c(1, 2))
+plot(zph.l, resid = FALSE)
+par(oldpar) # Restore plotting area
+@ 
+
+Result: {\tt sex} OK, {\tt m.age} not.
+\end{frame}  
+
+\begin{frame}[fragile]{PH test graphically, groped m.age}
+\scriptsize  
+<<zphgraph2,fig.height = 6, echo = FALSE>>=
+oldpar <- par(mfrow = c(2, 2))
+plot(zph, resid = FALSE)
+par(oldpar)
+save(infants, file = "infants.rda")
+@ 
+
+Result: {\tt m.age = (10, 25]} not OK.
+
+\end{frame}  
+
+\begin{frame}{Interactions}
+\underline{Example:} Infant mortality.
+\begin{eqnarray*}
+\mbox{\bf sex} & = & \left\{ \begin{array}{ll}
+             \mbox{\emp{boy}} & \\
+             \mbox{\emp{girl}} & \left(e^{\alpha_1}\right)
+            \end{array} \right. \\
+%\end{equation*}
+%\begin{equation*}
+\mbox{\bf m.age.grp} & = & \left\{ \begin{array}{ll}
+             \mbox{\emp{(25, 35]}} & \\
+             \mbox{\emp{(10, 25]}} & \left(e^{\beta_1}\right) \\
+             \mbox{\emp{(35, 51]}} & \left(e^{\beta_2}\right)
+            \end{array} \right. \\
+\mbox{\bf birthdate\ } (x_1) & & \mspace{128mu} \left(e^{\gamma_1 x_1}\right) \\
+\mbox{\bf m.age\ } (x_2) & & \mspace{128mu} \left(e^{\gamma_2 x_2}\right) \\
+\end{eqnarray*}
+\end{frame}
+%----------------------------------------------------------------------
+
+
+%------------------------------------------------------------SLIDE-----
+
+\begin{frame}{Two factors}
+
+\underline{I. No interaction (\emp{multiplicative} model):}
+
+\begin{tabular}{lllll}
+   & & \multicolumn{3}{c}{\bf m.age.grp} \\
+   & & (25, 35] & (10, 25] & (35, 51] \\ \hline
+{\bf sex} & boy & 1 & $e^{\beta_1}$ &   $e^{\beta_2}$ \\
+\bf    & girl & $e^{\alpha_1}$ & $e^{\alpha_1 + \beta_1}$ & $e^{\alpha_1 + \beta_2}$
+\end{tabular}
+
+
+\vspace{\baselineskip}
+\underline{II. With interaction:}
+
+\begin{tabular}{lllll}
+   & & \multicolumn{3}{c}{\bf m.age.grp} \\
+   & & (25, 35] & (10, 25] & (35, 51] \\ \hline
+{\bf sex} & boy & 1 & $e^{\beta_1}$ &   $e^{\beta_2}$ \\
+\bf    & girl & $e^{\alpha_1}$ & $e^{\alpha_1 + \beta_1 +
+   \theta_{11}}$ & $e^{\alpha_1 + \beta_2 + \theta_{12}}$
+\end{tabular}
+
+\end{frame}
+
+%----------------------------------------------------------------------
+
+
+%------------------------------------------------------------SLIDE-----
+
+\begin{frame}{{\large One factor and one continuous covariate}}
+
+\underline{I. No interaction (\emp{multiplicative} model):}
+
+\begin{tabular}{cccc}
+   &  \multicolumn{3}{c}{\bf m.age.grp} \\
+   & (25, 35] & (10, 25] & (35, 51] \\ \hline
+{\bf birthdate} & $e^{\gamma_1 x_1}$ & $e^{\beta_1 + \gamma_1 x_1}$
+&   $e^{\beta_2 + \gamma_1 x_1}$
+\end{tabular}
+
+
+\vspace{\baselineskip}
+\underline{II. With interaction:}
+
+\begin{tabular}{cccc}
+   &  \multicolumn{3}{c}{\bf m.age.grp} \\
+   &  (25, 35] & (10, 25] & (35, 51] \\ \hline
+\bf birthdate & $e^{\gamma_1 x_1}$ & $e^{\beta_1 + (\gamma_1 +
+   \theta_{11}) x_1}$ & $e^{\beta_2 + (\gamma_1 + \theta_{12}) x_1}$
+\end{tabular}
+
+\end{frame}
+
+%----------------------------------------------------------------------
+
+
+
+%------------------------------------------------------------SLIDE-----
+
+\begin{frame}{Two continuous covariates}
+
+\underline{I. No interaction (\emp{multiplicative} model):}
+
+\begin{tabular}{cc}
+   &  \multicolumn{1}{c}{\bf m.age} \\ \hline
+{\bf birthdate} & $e^{\gamma_1 x_1 + \gamma_2 x_2}$
+\end{tabular}
+
+
+
+\vspace{\baselineskip}
+\underline{II. With interaction:}
+
+\begin{tabular}{cc}
+   &  \multicolumn{1}{c}{\bf Tumor size in mm} \\ \hline
+\bf age at diagnosis & $e^{\gamma_1 x_1 + \gamma_2 x_2 + \theta_{12} x_1 x_2}$
+\end{tabular}
+
+\end{frame}
+
+%----------------------------------------------------------------------
+
+
+
+%-----------------------------------------------------------SLIDE-------
+
+\begin{frame}{Estimation}
+
+\begin{itemize}
+\item Model: $h(t; \mathbf{x}) = h_0(t) \exp{(\boldsymbol{\beta}
+\mathbf{x})}$.
+\item Data: $(t_{0i}, t_i, d_i, \mathbf{x}_i), \; i = 1, \ldots, n$.
+\item Two components to estimate:
+   \begin{itemize}
+      \item The regression coefficients $\boldsymbol{\beta} = (\beta_1,
+\ldots, \beta_k)$.
+     \item The baseline hazard function $h_0(t)$.
+   \end{itemize}
+\end{itemize}
+
+
+
+These components can be estimated \emp{sequentially}
+\begin{enumerate}
+\item Estimate $\boldsymbol{\beta}$ (with $\hat{\boldsymbol{\beta}}$).
+\item \emp{Given} $\hat{\boldsymbol{\beta}}$, estimate $h_0(t)$.
+\end{enumerate}
+
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+
+\begin{frame}{Estimation of the regression coefficients}
+
+\begin{itemize}
+\item $t_{(1)}, t_{(2)}, \ldots, t_{(k)}$ the \emp{ordered} observed
+  \emp{event times}. 
+\item Let $R_i = R(t_{(i)})$ be the \emp{risk set} at $t_{(i)}, \; i = 1,
+\ldots, k$.
+\item $R_i = $ \{individuals under observation ``just
+prior to $t_{(i)}$''\}.
+%\item At $t_{(i)}$, \emp{condition} wrt the composition of $R_i$ and
+%that one event occurred.
+\end{itemize}
+
+Then the contribution to the likelihood from $t_{(i)}$ is
+\begin{eqnarray*}
+L_i(\hat{\boldsymbol{\beta}}) & = & P(\mbox{No.\ $(i)$ dies} \mid
+\mbox{one death}, R_i) \\
+& = & \frac{h_0(t_{(i)}) \exp(\boldsymbol{\beta} \mathbf{x}_{(i)})}
+{\sum_{\ell \in R_i}h_0(t_{(i)})\exp(\bbeta \bx_\ell)}
+\end{eqnarray*}
+
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+
+\begin{frame}{Partial Likelihood}
+
+\begin{eqnarray*}
+L(\bbeta) & = & \prod_{i=1}^k L_i(\bbeta) \\
+& = & \prod_{i=1}^k \frac{ \exp(\boldsymbol{\beta} \mathbf{x}_{(i)})}
+{\sum_{\ell \in R_i}\exp(\bbeta \bx_\ell)}
+\end{eqnarray*}
+
+\emp{
+\begin{equation*}
+\log\big(L(\bbeta)\big) = \sum_{i=1}^k \left\{\bbeta \bx_{(i)} -
+\log\left(\sum_{\ell \in R_i} \exp(\bbeta \bx_\ell)\right)\right\}
+\end{equation*}
+}
+
+\vspace{\baselineskip}
+
+\emp{NOTE:} Does \emp{not} depend on $t$ (time). Valid if \emp{no tied
+  event times}.
+
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+%% \begin{frame}{Newton-Raphson}
+
+%% \begin{eqnarray*}
+%% \frac{\partial}{\partial \beta_j} \log L(\bbeta) & =  &
+%% \sum_{i=1}^k \bx_{m_i j} - \sum_{i=1}^k \frac{\sum_{\ell \in R_i}
+%% x_{\ell j} \exp(\bbeta \bx_\ell)} {\sum_{\ell \in R_i}
+%% \exp(\bbeta \bx_\ell)} = 0
+%% \end{eqnarray*}
+%% \begin{itemize}
+%% \item \emp{Maximum Partial Likelihood} (\emp{MPL}) estimator of
+%% $\bbeta$, $\hat{\bbeta}$.
+%% \item Inverse of minus the \emp{Hessian}, evaluated at $\hat{\bbeta}$ gives
+%% estimated \emp{covariance matrix}.
+%% \item \emp{Hessian} is the matrix of
+%% second partial
+%% derivatives. See (3.3.3)!
+%% \end{itemize}
+%% \end{frame}
+
+%-----------------------------------------------------------SLIDE-------
+
+%% \begin{frame}{Tied Event Times}
+
+%% \begin{itemize}
+%% \item Previous definitions assume \emp{no ties}.
+%% \item The ``exact'' method to deal with ties:
+%% Consider all possible permutations of events in
+%% each risk set.
+
+%% \underline{Example:} $R_i = \{1, 2, 3\}$, 1 and 2 are events; two
+%% possible orderings:
+%% \begin{eqnarray*}
+%% L_i(\bbeta) & = & \frac{\psi(1)}{\psi(1) + \psi(2) + \psi(3)} \times
+%%             \frac{\psi(2)}{\psi(2) + \psi(3)} \\ & + &
+%% \frac{\psi(2)}{\psi(1) + \psi(2) + \psi(3)} \times
+%%             \frac{\psi(1)}{\psi(1) + \psi(3)} \\
+%%  & = & \frac{\psi(1)\psi(2)}{\psi(1) + \psi(2) + \psi(3)}
+%%  \left\{\frac{1}{\psi(2) + \psi(3)}
+%%             + \frac{1}{\psi(1) + \psi(3)}\right\}
+%% \end{eqnarray*}
+%% \end{itemize}
+
+%% \end{frame}
+
+
+%-----------------------------------------------------------------------
+\begin{frame}{Methods for handling ties}
+
+\begin{itemize}
+\item \emp{Breslow:} Consider all denominators the same. Standard in
+most software.
+\item \emp{Efron:} ``Average'' denominators of the same
+``size''. Standard in {\bf S-plus} and {\bf R}. The best
+approximation!
+\item In case of \emp{no ties}, all methods give the same answer.
+\item Markedly different results with \emp{moderately to heavily
+tied} data. Efron's method surprisingly robust.
+\item With heavily tied data, consider \emp{discrete time} models.
+\end{itemize}
+\end{frame}
+
+%-----------------------------------------------------------SLIDE-------
+
+\begin{frame}[fragile]{Male mortality, Skellefteå 1800--1820}
+\scriptsize
+<<mmor,echo=TRUE>>=
+library(eha)
+data(male.mortality)
+mm <- male.mortality
+res <- coxreg(Surv(enter, exit, event) ~ ses + birthdate, 
+              data = mm)
+@
+
+\end{frame}
+
+
+\begin{frame}{Discrete Time Methods}
+
+\begin{itemize}
+\item $t_1 < t_2 < \cdots < t_k$ possible event times.
+\item $P(\mbox{event at}\; t_j \mid \mbox{no event before}; \bx) =
+\psi(\alpha_i, \bbeta, \bx)$.
+\item Problem: Many extra parameters to estimate
+($\boldsymbol{\alpha}$).
+\item Advantage: Fully parametric model; hazard function is fully
+specified.
+\item But what is \emp{proportional hazards in discrete time}?
+\end{itemize}
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+\begin{frame}{Proportional Hazards in Discrete Time}
+
+Assume \emp{continuous} proportional hazards, and a partition of
+time: $0 < t_1 < t_2 < \cdots < t_k = \infty$. Then
+
+
+\begin{eqnarray*}
+P(t_{j-1} \le T < t_j \mid T \ge t_{j-1}; \; \bx) & = &
+\frac{S(t_{j-1}\mid \bx) - S(t_j\mid \bx)}{S(t_{j-1} \mid \bx)} \\
+& = & 1 - \frac{S(t_j \mid \bx)}{S(t_{j-1} \mid \bx)} \\
+& = & 1 -
+\left(\frac{S_0(t_j)}{S_0(t_{j-1})}\right)^{\exp(\bbeta\bx)} \\
+&=& 1 - (1 - h_i)^{\exp(\bbeta\bx)}
+\end{eqnarray*}
+with $h_i = P(t_{j-1} \le T < t_j \mid T \ge t_{j-1}; \; \bx =
+\mathbf{0})$,
+$j = 1, \ldots, k$.
+
+
+\end{frame}
+
+%-----------------------------------------------------------SLIDE-------
+
+\begin{frame}{Logistic Regression}
+\begin{itemize}
+\item Let
+\begin{equation*}
+X = \left\{ \begin{array}{ll}
+          1, & 0 \le T < t_1 \\
+          2, & t_1 \le T < t_2 \\
+         \cdots & \cdots \\
+          k, & T > t_{k-1}
+         \end{array} \right.
+\end{equation*}
+\item Then $P(X = j \mid X \ge j; \; \bx) =  1 - (1 -
+h_i)^{\exp(\bbeta\bx)}$
+\item Let $(1 - h_j) = \exp(-\exp(\alpha_j)), \; j = 1, \ldots, k$.
+\item Then $P(X = j \mid X \ge j; \; \bx) =  1 - \exp(-\exp\big(\alpha_j
++ \bbeta\bx)\big)$
+\item This is \emp{logistic regression} with \emp{cloglog link}!
+\item If the $h$s are ``small'', can approximate with logit link.
+\end{itemize}
+
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+\begin{frame}{Asymptotics}
+\begin{itemize}
+\item Observed information matrix:
+\begin{equation*}
+\hat{I}(\hat{\bbeta})_{j,m} = -\frac{\partial^2 \log L(\bbeta)}
+{\partial \beta_j \partial \beta_m}\mid_{\bbeta = \hat{\bbeta}}
+\end{equation*}
+\item $\hat{\bbeta}
+\sim N(\bbeta, \hat{I}^{-1}(\hat{\bbeta}))$
+\item Use for testing, confidence intervals, variable selection.
+\item Only \emp{asymptotic} results, i.e., useful in \emp{large
+samples}.
+%\item In small samples: \emp{bootstrapping}. Available in {\bf MLife}.
+\end{itemize}
+
+\underline{Warning:} Tests based on standard errors (\emp{Wald} tests)
+are highly unreliable, as in all non-linear regression!!
+
+\end{frame}
+
+%-----------------------------------------------------------SLIDE-------
+%-----------------------------------------------------------SLIDE-------
+
+\begin{frame}{The Wald test}
+\begin{itemize}
+\item Maximize $\log L(\beta_1, \beta_2)$ under ${\cal M}_2$;
+gives $\log L(\hat{\beta}_1, \hat{\beta}_2)$, and (among other things)
+$\hat{\beta}_2$, se($\hat{\beta}_2$).
+
+\item Test statistic:
+\begin{equation*}
+T_W = \frac{\hat{\beta}_2}{\mbox{se}(\hat{\beta}_2)}
+\end{equation*}
+\item \emp{Under} $H_0$, $T_W$ has a \emp{standard normal}
+distribution: $T_W \sim N(0, 1)$.
+\item This is a \emp{large sample approximation}.
+\item \underline{Advantage:} Automatically available in all software.
+\item \underline{Drawback:} Automatically available in all software(!).
+\item \underline{And:} Gives occationally nonsensic results.
+\end{itemize}
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+
+\begin{frame}{{\large Interpretation of parameter estimates}}
+\begin{itemize}
+\item \underline{Continuous covariate:} If
+$h(t; x) = h_0(t)e^{\beta x}$,
+then
+\begin{equation*}
+\frac{h(t; x+1)}{h(t; x)} = \frac{h_0(t)e^{\beta (x+1)}}
+{h_0(t)e^{\beta x}} = e^\beta
+\end{equation*}
+\begin{itemize}
+\item ``The risk increases with a factor $e^\beta$, when $x$ is
+increased by one unit.''
+\item $e^\beta$ is a \emp{relative risk}.
+\end{itemize}
+\item \underline{Factor:}
+\begin{itemize}
+\item $e^\beta$ is the relative risk compared to the \emp{reference}
+category.
+\end{itemize}
+\item \underline{Conclusion:} $e^\beta$ is more interesting than $\beta$.
+\end{itemize}
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+
+
+\begin{frame}{Model selection}
+
+ Some points:
+\begin{itemize}
+\item Remember, no \emp{true} model, only some \emp{useful} ones.
+\item More than one model may be useful.
+\item Keep \emp{important} covariates in the model.
+\item Avoid automatic stepwise procedures!
+\item If interaction effects are present, the corresponding main
+effects \emp{must} be there.
+\begin{itemize}
+\item \emp{center} covariates before analysis!
+\end{itemize}
+\item ``Non-Linear effect'':
+\begin{itemize}
+\item Include $x^2$, $x^3$, etc.\ (not so useful).
+\item Categorize, say 4-5 groups (recommended).
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+
+\begin{frame}{Stratification}
+When a \emp{factor} does not produce proportional hazards between
+categories, \emp{stratify}.
+
+\begin{itemize}
+\item Construct \emp{separate} likelihoods $L_i$ for each category $i$.
+\item Multiply them together:
+\begin{equation*}
+L(\bbeta) = \prod_i L_i(\bbeta)
+\end{equation*}
+\item Treat $L(\bbeta)$ as the likelihood function.
+\item Continuous covariates must be \emp{grouped} first.
+\item Checking proportionality:
+\begin{itemize}
+\item Graphical.
+\item Formal test (in {\bf S-plus} and {\bf R}).
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+\begin{frame}{Estimation of the Baseline Functions}
+
+\begin{itemize}
+\item The usual estimator (continuous time) is
+\begin{equation*}
+\hat{H}_0(t) = \sum_{j:t_j \le t} \frac{d_j}{\sum_{\ell \in R_j}
+e^{\bx_\ell \hat{\bbeta}}}
+\end{equation*}
+\item Note: If $\bbeta = 0$, this reduces to
+\begin{equation*}
+\hat{H}_0(t) = \sum_{j:t_j \le t} \frac{d_j}{n_j}
+\end{equation*}
+as before. $n_j$ is the size of $R_j$.
+\item  $\hat{H}(t; \bx) = \hat{H}_0(t) e^{\hat{\bbeta}\bx}$.
+\item Calculate $\hat{S}_0$ by usual relations.
+
+\end{itemize}
+\end{frame}
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+
+
+%-----------------------------------------------------------------------
+
+
+%-----------------------------------------------------------SLIDE-------
+
+
+%-----------------------------------------------------------------------
+\end{document}
