@@ -1,0 +1,195 @@
+\documentclass[11pt,a4paper]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{color}
+
+\newcommand{\emp}[1]{\textcolor{blue}{#1}}
+
+\usetheme{Singapore}% best choice.
+  \setbeamercovered{transparent}%
+
+\newcommand{\R}{{\bf R}}
+\newcommand{\code}[1]{{\tt #1}}
+
+\title{Overview of The Course}
+
+\author{Göran Broström}
+
+\date{June 1, 2015}
+
+\begin{document}
+
+\maketitle
+
+\begin{frame}{What is R?}
+
+\R\ is 
+\begin{itemize}
+\item a language and environment for \emp{statistical computing} and
+\emp{graphics}. 
+\item a \emp{GNU project} originating from the \emp{S} language and
+environment which was developed at \emp{Bell Laboratories} (formerly AT\&T, now
+Lucent Technologies) by \emp{John Chambers} and colleagues. 
+
+\item a different implementation of S. 
+\end{itemize}
+
+\vspace{\baselineskip}
+
+From \emp{\url{http://www.r-project.org/about.html}}
+
+\end{frame}
+
+\begin{frame}{What is R?}
+
+\begin{itemize}
+\item R provides a wide variety of statistical and graphical techniques,
+  and is \emp{highly extensible}.
+\item One of R’s strengths is the ease with which \emp{well-designed
+  publication-quality plots} can be produced, including mathematical symbols
+  and formulae where needed.  
+  
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{The R environment}
+  
+\R\ includes
+\begin{itemize}
+\item    an effective \emp{data handling} and \emp{storage} facility,
+\item    operators for \emp{calculations on arrays}, in
+  particular \emp{matrices}, 
+\item    intermediate
+  \emp{tools for data analysis}, 
+\item    superb \emp{graphical facilities}, and
+\item    a simple and effective \emp{programming language}
+  which includes 
+  \begin{itemize}
+  \item \emp{conditionals}, 
+  \item \emp{loops}, 
+%  \item user-defined recursive functions and  
+  \item \emp{input} and \emp{output} facilities.
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Why R?}
+
+\begin{itemize}
+\item \R\ is \emp{free}:
+  \begin{itemize}
+  \item as in \emp{free beer},
+  \item as in \emp{free speech}.
+  \end{itemize}
+\item \R\ can be installed on as many computers you like
+\item \R\ is \emp{open-source}.
+\item \R\ has thousands of \emp{add-on packages}.
+ 
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{What is RStudio?}
+  
+RStudio allows you to \emp{run R} in a more \emp{user-friendly} environment
+
+\begin{itemize}
+
+\item It is \emp{free} and \emp{open-source},
+\item Tools for \emp{interacting} statistical \emp{analysis} with report
+  \emp{writing}. 
+  \begin{itemize}
+    \item \emp{R markdown}
+    \item \emp{knitr}
+    \end{itemize}
+\item Tools for \emp{version control} (git, gitHub)
+\item Support: \emp{\url{http://www.rstudio.com}}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Why RStudio?}
+
+See previous slide! Also,
+
+\begin{itemize}
+  \item It is \emp{available} on all (Linux, Mac, Windows) platforms.
+  \item It looks \emp{exactly the same} on all platforms.
+    \item It \emp{behaves exactly the same} on all platforms.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{What is reproducible research?}
+
+\begin{itemize}
+  \item It can be \emp{reproduced by others},
+  \item It can be reproduced \emp{by yourself} (6 months later)!
+\end{itemize}
+
+\vspace{\baselineskip}
+
+Focus is on reproducing results \emp{from a single set of observations}.
+\end{frame}
+
+\begin{frame}{What is reproducible research \alert{not}}
+  
+\begin{itemize}
+\item We do  \alert{not} mean \emp{replicable}.
+  \begin{description}
+    \item[Replicable:] If the \emp{results} can be replicated on
+      \emp{another} study population.
+ \end{description}
+ 
+\item It is rather about rules of \emp{disciplin} and \emp{documentation}.
+\item We will give you the \emp{tools}.
+\end{itemize}
+  
+\end{frame}
+
+\begin{frame}{Version control}
+  
+\begin{itemize}
+\item Must be \emp{easy} to go back to \emp{earlier versions} of your research:
+  \begin{itemize}
+    \item You detect \emp{errors},
+    \item You get \emp{new data},
+    \item The journal asks you to perform \emp{separate analyses} for men
+      and women, 
+      \item etc.
+   \end{itemize}
+\item There are \emp{tools} to help:
+  \begin{itemize}
+    \item \emp{git} (\url{http://git-scm.com}), by Linus Torvalds,
+      \item \emp{gitHub} (\url{https://github.com})
+  \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{What is Event History Analysis?}
+  
+The \emp{core} of the course. It is about
+
+\begin{itemize}
+\item Time to event data, \emp{durations}
+  \begin{itemize}
+  \item dependence on \emp{covariates},
+  \item Complication: Incomplete observations,
+    \begin{itemize}
+    \item \emp{Right censoring}
+    \item \emp{Left truncation}
+    \end{itemize}
+  \end{itemize}
+\item Applications:
+  \begin{itemize}
+  \item \emp{Mortality}
+  \item \emp{Fertility}
+\end{itemize}      
+\end{itemize}
+
+
+
+\end{frame}
+\end{document}
