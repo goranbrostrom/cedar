@@ -1,2 +1,3 @@
 # cedar
-Web page for the summer school at CEDAR, 2015
+Course material for the summer school at CEDAR, 1-12 June, 2015.
+
