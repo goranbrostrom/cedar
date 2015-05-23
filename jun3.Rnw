@@ -1,0 +1,1202 @@
+\documentclass[a4paper]{beamer}
+
+\usepackage[utf8]{inputenc}
+\newcommand{\R}{{\bf R}}
+\usepackage{url}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{color}
+
+%\PassOptionsToPackage{pdf}{pstricks} %used for pdflatex
+%\usepackage{pstricks,pst-plot,pst-node,pst-func}
+
+\newcommand{\emp}[1]{\textcolor{blue}{#1}}
+
+\usetheme{Singapore}% best choice.
+  \setbeamercovered{transparent}%
+
+<<include=FALSE>>=
+library(knitr)
+opts_chunk$set(
+fig.path='figs/jun3-', fig.height = 5
+)
+@
+
+%\SweaveOpts{prefix=TRUE,prefix.string=../../figs/ch1,height=4}
+
+\title{Event History and Survival Data}
+
+\subtitle{Demography and Event History using R \\ Umeå 1--12 June 2015}
+\date{June 3, 2015}
+
+\begin{document}
+
+\maketitle
+
+\begin{frame}{Introduction}
+
+\begin{itemize}
+\item Event history and survival data are \emp{dynamic}:
+  \begin{itemize}
+  \item Individuals are
+\emp{followed over 
+time}, 
+\item the \emp{timing of events} of interest are
+noted.
+\item Information may be \emp{incomplete} for some individuals:%Naturally, things may happen that makes it necessary to interrupt an
+%individual follow-up, such as the individual suddenly disappearing for some
+ %reason. 
+
+\begin{itemize}
+\item \emp{right censoring}
+\item \emp{left truncation}
+ \end{itemize}
+ \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{The survival model}
+  
+\begin{itemize}
+\item \emp{simplest} form of the event history model.
+\item   A \emp{survival time} is the  
+  time it takes for an event to occur, measured from a well-defined start
+  event.
+\item \emp{Three basic elements}:
+    \begin{itemize}
+    \item a
+      \emp{time origin}, 
+    \item a \emp{time scale}, and
+    \item the \emp{duration time} from origin to event. 
+    \end{itemize}    
+\item    
+    The \emp{response} in a
+    statistical analysis of such data is the exact time elapsed from the time
+    origin to the time at which the event occurs. 
+  \item The challenge, which
+    motivates special methods, is that in most applications, this
+    duration is often \emp{not possible to observe exactly}.  
+    
+  \end{itemize}
+  
+\end{frame}
+
+\begin{frame}[fragile]{Survival data, calendar time}
+
+<<surd2, echo=FALSE>>=
+plot(c(1815, 1830), c(1, 1), type = "l", ylim = c(0.5, 4.5),
+     xlim = c(1805, 1840), ylab = "ID", xlab = "Age")
+lines(c(1830, 1838), c(1, 1), lty = 2)
+points(1838.1, 1, pch = "+", cex = 2)
+points(1830.1, 1, pch = "C")
+abline(v = c(1810, 1830), lty = 3)
+lines(c(1815, 1822), c(2, 2), col = 2)
+points(1822.1, 2, pch = "+", col = 2, cex = 2)
+lines(c(1808, 1810), c(3, 3), col = 3, lty = 2)
+lines(c(1810, 1819), c(3, 3), col = 3)
+points(1810, 3, pch = "|", col = 3)
+points(1819.1, 3, pch = "+", col = 3, cex = 2)
+lines(c(1819, 1830), c(4, 4), col = 4)
+lines(c(1816, 1819), c(4, 4), col = 4, lty = 2)
+lines(c(1830, 1832), c(4, 4), col = 4, lty = 2)
+text(1819, 4.3, "moved in", col = 4)
+points(1819, 4, pch = "|", col = 4)
+points(1832.1, 4, pch = "+", cex = 2, col = 4)
+points(1830.1, 4, pch = "C", col = 4)
+@ 
+  
+\end{frame}
+
+\begin{frame}[fragile]{Survival data, age}
+  
+
+<<surdata, echo=FALSE>>=
+plot(c(0, 15), c(1, 1), type = "l", ylim = c(0.5, 4.5), 
+     ylab = "ID", xlab = "Age")
+abline(v = 0)
+points(15.1, 1, pch = "C", cex = 1)
+text(8, 1.3, "Right censored")
+lines(c(0, 7), c(2, 2), col = 2)
+points(7, 2, pch = "+", cex = 2, col = 2)
+text(3, 2.3, "Complete", col = 2)
+lines(c(2, 11), c(3, 3), col = 3)
+points(11, 3, pch = "+", cex = 2, col = 3)
+points(2, 3, pch = "|", col = 3)
+text(6, 3.3, "Left truncated", col = 3)
+lines(c(3, 14), c(4, 4), col = 4)
+points(14.1, 4, pch = "C", cex = 1, col = 4)
+points(3, 4, pch = "|", col = 4)
+text(9, 4.3, "Left truncated & right censored", col = 4)
+@ 
+  
+\end{frame}  
+
+\begin{frame}[fragile]{Length-biased sampling}
+
+\emp{Sampling design:} Select all alive and present on \emp{Jan 1, 1810}.
+
+\begin{itemize}
+\item The \emp{sampled have longer lives} (on average).
+\item Why?
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{Length-biased sampling, simulation}
+
+<<sampl,echo=TRUE>>=
+rep = 1000000; set.seed(101769)
+start = runif(rep, min = 1806, max = 1813)
+stopp = start + runif(rep)
+cover <- (start < 1810) & (stopp > 1810)
+sum(cover)
+age <- stopp - start
+mean(age)
+mean(age[cover])
+@ 
+  
+\end{frame}  
+
+\begin{frame}[fragile]{Length-biased sampling, plot}
+
+<<plotsam,echo=FALSE>>=
+plot(c(start[1], stopp[1]), c(1, 1), type = "l", ylim = c(0.5, 100.5), xlim = c(1805.5, 1814.5), ylab = "ID", xlab = "Date")
+abline(v = 1810, lty = 2, col = "red")
+for (i in 2:100) lines(c(start[i], stopp[i]), c(i, i))
+@   
+  
+\end{frame}  
+
+\begin{frame}{Old age mortality}
+
+Survival data from the \emp{Sundsvall region} 
+
+\includegraphics[height=3in]{graphics/ddb.png} 
+\includegraphics[height=2.5in]{graphics/sullan.jpg}
+
+\end{frame}
+
+\begin{frame}{The sampling frame}
+
+\begin{itemize}
+\item Every person who was present and alive
+and \emp{60 years of age or above} anytime between \emp{1 January 1860} and \emp{31 December 1879} was included.
+\item \emp{Followed} from the entrance day until the \emp{day last seen}, determined by  
+\begin{itemize}
+\item death, 
+\item out-migration, or
+\item surviving until 31 December 1879.
+  \end{itemize}
+  \end{itemize}
+  
+\end{frame}
+
+\begin{frame}[fragile]{The Lexis diagram}
+
+<<lexis0,echo=FALSE>>=
+source("R/lexis0.R")
+lexis0(age = c(60, 100), cal = c(1860, 1880))
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{On the age scale}
+  
+<<agesc,echo=FALSE>>=
+plot(c(60, 73), c(1, 1), type = "l",  
+     ylim = c(0.5, 4.5), xlim = c(59.5, 101), ylab = "ID", xlab = "Age")
+abline(v = 60)
+points(74, 1, pch = "+", cex = 1.5)
+lines(c(63, 74), c(2, 2))
+points(75, 2, pch = "+", cex = 1.5)
+lines(c(74, 94), c(3, 3), col = "blue")
+points(95, 3, pch = "C", col = "blue")
+lines(c(93, 100), c(4, 4), col = "blue")
+points(101, 4, pch = "C", col = "blue")
+@   
+\end{frame}
+
+\begin{frame}[fragile]{Censoring}
+  
+Two types of \emp{ending the observation} of a person are distinguished:
+\begin{itemize}
+\item By \emp{death}, or 
+\item  it is by something else, out-migration or end of study period. We
+  call that \emp{censoring}.
+\end{itemize}
+
+In the \emp{first case} we say that \emp{the event of interest has occurred}, 
+in the \emph{second case} the event has \emp{not} ocurred.
+
+\end{frame}
+
+\begin{frame}[fragile]{The eha package and old age mortality}
+<<oldmort1>>=
+library(eha)
+#data(oldmort)
+@ 
+\begin{itemize}
+\item The first line \emp{loads} the package \emp{{\tt eha}} into the
+\emp{workspace} of \R, 
+and 
+\item the second line loads (not always necessary) the \emp{data set {\tt
+      oldmort}} 
+found in {\tt eha}. 
+\item Also note that the \emp{{\tt survival}} package is \emp{automatically
+  loaded} at the same time.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{Data oldmort, str}
+
+  \scriptsize
+Let us look at a description of {\tt oldmort}. It is conveniently
+done with the aid of the \R\ function {\tt str}:
+<<str11>>=
+str(oldmort)
+@ 
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Data oldmort, head}
+
+  \scriptsize
+Let us look at the first few lines of {\tt oldmort}. It is conveniently
+done with the aid of the \R\ function {\tt head}:
+<<head1>>=
+head(oldmort[, c("id", "enter", "exit", "event", "birthdate", 
+                 "sex", "ses.50", "region")])
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{Data oldmort, summary}
+
+\scriptsize
+Let us look at a summary of \emp{\tt oldmort}:
+<<summary1>>=
+summary(oldmort[, c("id", "enter", "exit", "event", "birthdate", 
+                    "sex", "ses.50", "region")])
+@ 
+
+\end{frame}
+
+
+\begin{frame}[fragile]{The Surv object}
+  
+Consists of two or three components:
+
+\begin{itemize}
+  
+\item \emp{\tt enter} Age at start of interval (optional, \emp{zero} if missing)
+\item \emp{\tt exit} Age at end of  interval
+\item \emp{\tt event} logical (TRUE or FALSE) or numeric (0 or 1),
+  indicating an event.
+  
+\end{itemize}
+
+constitutes the \emp{response} (``dependent variable''):
+
+<<add1>>=
+fit <- coxreg(Surv(enter, exit, event) ~ sex + region, 
+              data = oldmort)
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{plot.coxreg}
+  
+<<plott,fig.height=4>>=
+plot(fit, fn = "surv")
+abline(h = 0.5, lty = 2, col = "green")
+@   
+
+\end{frame}
+
+\begin{frame}[fragile]{Survival analysis}
+The data set {\tt oldmort} contained 
+only two states, referred to as \emp{Alive} and \emp{Dead}, and
+one possible \emp{transition}, from Alive to Dead.
+%% \begin{figure}[h!]
+%% \begin{center}
+%% \begin{pspicture}(0,0)(10,3)
+%% \rput[tl](1, 2){\circlenode{a}{Alive}}
+%% \rput[tl](6, 2){\circlenode{d}{Dead}}
+%% \psset{nodesep=3pt}
+%% \ncline{->}{a}{d}
+%% \end{pspicture}
+%% \caption{Survival data.}
+%% \label{fig:survival}
+%% \end{center}
+%% \end{figure}
+
+<<surmod, echo = FALSE>>=
+plot(1, 1, ylim = c(0, 4), xlim = c(0, 8), axes = FALSE, type = "n",
+     xlab = "", ylab = "")
+symbols(x = c(1, 6), y = c(2, 2), circles = c(0.8, 0.8), add = TRUE, inches = FALSE)
+text(1, 2, "Alive", col = "blue", cex = 2)
+text(6, 2, "Dead", col = "black", cex = 2)
+arrows(2, 2, 5, 2, lwd = 2)
+@ 
+\end{frame}
+
+
+\begin{frame}{Single sample data}
+
+\begin{itemize}  
+\item The \emp{basic model descriptions} of survival data are introduced. 
+\item Only \emp{nonparametric estimation} is discussed here. 
+\item  Parametric models are presented later.
+\end{itemize}  
+\end{frame}
+
+\begin{frame}{Continuous time model descriptions}
+
+\begin{itemize}
+\item \emp{Traditional statistical model descriptions} are based on the 
+\emp{density}
+and the \emp{cumulative distribution} 
+functions. 
+\item These functions are not
+so suitable for use with censored and/or truncated data. 
+\item The
+\emp{survival} and \emp{hazard} functions are better suited, as will be
+demonstrated here.
+\end{itemize}
+
+\end{frame}
+
+%% \begin{frame}{Swedish female life table 2010}
+
+%% \begin{tabular}{r|rr|r||r}
+%%   age($x$) &  pop & deaths & risk(\%) & alive at age $x$ \\ \hline
+%%   0 & 55407  &  117 & 0.211   &  100000 \\
+%%   1 & 54386  &   22 & 0.040  &   99789 \\
+%%   2 & 53803  &   11 & 0.020  &   99748 \\
+%%   3 & 53486  &    7 & 0.013  &   99728 \\
+%%   4 & 52544  &    4 & 0.008  &   99715 \\
+%% $\cdots$ &$\cdots$ &$\cdots$ &$\cdots$ &$\cdots$ \\
+
+%% 96 &  3074  &    1030 & 33.507 &  6529 \\
+%% 97 &  2204  &    817 & 37.061  &  4341 \\
+%% 98 &  1473  &    624 & 42.363   & 2732 \\
+%% 99 &  920  &    433 & 47.065    &  1575 \\
+%% 100+ & 1400 &    837 & 59.786 &  834
+%% \end{tabular}
+
+%% \end{frame}
+
+
+\begin{frame}[fragile]{Constructing a life table}
+  
+From \emp{Statistics Sweden} (\url{http://scb.se}):
+The 'csv' file \emp{BE0101N1.csv}; the top lines:
+
+\begin{verbatim}
+"Folkmängd efter region, civilstånd, ålder, kön och år"
+
+"region";"civilstånd";"ålder";"kön";"2013";"2014"
+"00 Riket";"ogifta";"0 år";"män";58649;59584
+"00 Riket";"ogifta";"0 år";"kvinnor";55359;56296
+"00 Riket";"ogifta";"1 år";"män";59039;59489
+"00 Riket";"ogifta";"1 år";"kvinnor";55884;56083
+"00 Riket";"ogifta";"2 år";"män";58721;59807
+\end{verbatim}
+
+\emp{``Population by region, civil status, age, sex, and year''}
+\end{frame}
+
+\begin{frame}[fragile]{Reading the csv file}
+\scriptsize
+<<readcsv>>=
+pop <- read.table("../Data/BE0101N1.csv", skip = 2, header = TRUE, 
+                  sep = ";", fileEncoding = "latin1")
+summary(pop)
+@   
+\end{frame}  
+
+\begin{frame}[fragile]{Problems}
+  
+\begin{itemize}
+\item The variable ``ålder'' is a \emp{factor}.
+  \begin{itemize}
+    \item We want it to be \emp{numeric}.
+  \end{itemize}
+\item Variable names \emp{X2013} and \emp{X2014} ``constructed'': Variable
+  names may \emp{not} begin with a digit. 
+\begin{itemize}
+  \item We can live with that \ldots
+\end{itemize}
+\end{itemize}
+
+%But ``ålder'' must be fixed (in two steps)!
+
+\emp{First step:} Change variable names!
+<<chnam0>>=
+names(pop) <- c("region", "civst", "age", "sex",
+                "pop13", "pop14")
+@ 
+
+``Accented letters lead frequently to problems \ldots''
+\end{frame}
+
+\begin{frame}[fragile]{Fix labels of factor levels}
+\scriptsize
+<<fixla>>=
+str(pop)
+levels(pop$civst)
+levels(pop$civst) <- c("widow", "married", "unmarried", "divorced")
+levels(pop$sex) <- c("woman", "man")
+levels(pop$age)[1:5]
+@   
+Note the order! Not good \ldots Needs special treatment (later).
+\end{frame}
+
+%% \begin{frame}[fragile]{Second step: Fix 'age'}
+%% \scriptsize
+%% <<fixald>>=
+%% age <- with(pop, strsplit(as.character(age), " "))
+%% age[1:2]
+%% @ 
+%% \begin{itemize}
+%% \item The result is a \emp{list}, where each component is a \emp{vector}. 
+%% \item But we only need the \emp{first} value in each component.
+%%   \end{itemize}
+%% <<sapp>>=
+%% age <- sapply(age, function(x) x[1])
+%% age <- substr(age, 1, 3) # Why?
+%% pop$age <- as.numeric(age)
+%% @ 
+%% \end{frame}  
+
+%% \begin{frame}[fragile]{Fix names}
+%% \scriptsize
+%% <<chnam>>=
+%% names(pop) <- c("region", "civst", "age", "sex",
+%%                 "pop13", "pop14")
+%% str(pop)
+%% table(pop$civst)
+%% @ 
+
+
+%% We want to change \emp{labels} and \emp{aggregate} \emp{\tt pop13} and \emp{\tt pop14} over \emp{\tt
+%%   civst} and have \emp{separate} data frames for \emp{\tt män} and \emp{\tt kvinnor} 
+
+%% \end{frame}  
+
+\begin{frame}[fragile]{Females}
+\scriptsize  
+<<females,eval=FALSE>>=
+females <- pop[pop$sex == "woman", -1]
+@ 
+
+or (equivalently)
+
+<<femtwo,eval=TRUE>>=
+females <- pop[pop$sex == "woman", 2:6]
+summary(females)
+@ 
+\end{frame}
+
+\begin{frame}[fragile]{Fix age for females}
+\scriptsize
+<<fixagefem,echo=TRUE>>=
+rownames(females) <- 1:NROW(females)
+females[c(1:2, 101:103, 202:204, 303:305, 404), 1:2]
+@ 
+<<anda>>=
+females$age <- rep(0:100, times = 4)
+@   
+Should do it!
+\end{frame}
+
+\begin{frame}[fragile]{The 'tapply' function}
+  
+\footnotesize
+<<femtap>>=
+fem <- data.frame(age = 0:100,
+                  sex = "woman",
+                  pop13 = with(females, tapply(pop13, age, sum)),
+                  pop14 = with(females, tapply(pop14, age, sum))
+                  )
+head(fem)
+@   
+\end{frame}  
+
+\begin{frame}[fragile]{Put on deaths}
+\scriptsize
+<<redea>>=
+dead <- read.table("../Data/BE0101D9.csv", skip = 2, 
+                   header = TRUE, sep = ";", fileEncoding = "latin1")
+head(dead)
+fem$deaths <- dead$X2014[dead$kön == "kvinnor"]
+head(fem)
+@ 
+  
+\end{frame}
+
+\begin{frame}[fragile]{The same procedure for men}
+
+gives \ldots
+<<formen,echo=FALSE>>=
+males <- pop[pop$sex == "man", -1]
+males$age <- rep(0:100, times = 4)
+mal <- data.frame(age = 0:100,
+                  sex = "man",
+                  pop13 = with(males, tapply(pop13, age, sum)),
+                  pop14 = with(males, tapply(pop14, age, sum)))
+mal$deaths <- dead$X2014[dead$kön == "män"]
+@ 
+
+\scriptsize
+<<headmal>>=
+head(mal)
+@ 
+``Join'' women and men:
+
+<<joinsex>>=
+both <- rbind(fem, mal)
+@ 
+\end{frame}
+
+\begin{frame}[fragile]{Average population by age in 2014}
+
+\begin{itemize}  
+\item \emp{\tt pop13} is the population size on \emp{December 31, 2013}  
+\item \emp{\tt pop14} is the population size on \emp{December 31, 2014}  
+\item So, \emp{$pop = (pop13 + pop14) / 2$} ist the \emp{average} population size of 2014.
+\item \emp{$pop$} is also an estimate of number of \emp{person-years} 2014.
+\end{itemize}  
+\scriptsize
+<<pyears>>=
+both$pop <- with(both, (pop13 + pop14) / 2)
+both$pop13 <- both$pop14 <- NULL
+head(both, 3)
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{Death risks}
+  \scriptsize
+We get the age-specific death risks by division:
+
+<<brisk,fig.height=4>>=
+both$risk <- both$deaths / both$pop
+@ 
+
+Then we sort the data frame by age and sex:
+
+<<sortage>>=
+both <- both[order(both$age, both$sex), ]
+head(both)
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{Age-specific mortality by sex}
+\scriptsize  
+<<morbysex,fig.height=4>>=
+mrisk <- both$risk[both$sex == "man"]
+wrisk <- both$risk[both$sex == "woman"]
+plot(0:99, mrisk[1:100], type = "s", col = "blue",
+     ylab = "Age-specific mortality", xlab = "Age")
+lines(0:99, wrisk[1:100], type = "s", col = "red")
+text(78, 0.1, "Men", col = "blue")
+text(92, 0.05, "Women", col = "red")
+abline(h = 0)
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{Age-specific mortality by sex, 0--25}
+\scriptsize  
+<<morbysex2,fig.height=5,echo=FALSE>>=
+plot(0:25, both$risk[both$sex == "man" & both$age <= 25], 
+     type = "s", col = "blue",
+     ylab = "Age-specific mortality", xlab = "Age")
+lines(0:25, both$risk[both$sex == "woman" & both$age <= 25], 
+      type = "s", col = "red")
+text(20, 0.001, "Boys", col = "blue")
+text(24, 0.0001, "Girls", col = "red")
+abline(h = 0)
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{Age-specific mortality by sex, 25--60}
+\scriptsize  
+<<morbysex3,fig.height=5,echo=FALSE>>=
+plot(25:60, both$risk[both$sex == "man" & both$age <= 60 & both$age >= 25], 
+     type = "s", col = "blue", ylim = c(0, 0.007),
+     ylab = "Age-specific mortality", xlab = "Age")
+lines(25:60, both$risk[both$sex == "woman" & both$age <= 60 & both$age >= 25], 
+      type = "s", col = "red")
+text(45, 0.003, "Men", col = "blue")
+text(55, 0.001, "Women", col = "red")
+abline(h = 0)
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{Age-specific mortality by sex, 60--99}
+\scriptsize  
+<<morbysex4,fig.height=5,echo=FALSE>>=
+plot(60:99, both$risk[both$sex == "man" & both$age <= 99 & both$age >= 60], 
+     type = "s", col = "blue", ylim = c(0, 0.5),
+     ylab = "Age-specific mortality", xlab = "Age")
+lines(60:99, both$risk[both$sex == "woman" & both$age <= 99 & both$age >= 60], 
+      type = "s", col = "red")
+abline(h = 0)
+@ 
+
+\end{frame}
+
+
+\begin{frame}[fragile]{The life table, women}
+\scriptsize
+<<ltaw>>=
+fem <- both[both$sex == "woman", ]
+surv <- numeric(NROW(fem)) # Reserves memory
+surv[1] <- 100000 # Any number
+for (i in 2:101){
+    surv[i] <- surv[i-1] * (1 - fem$risk[i-1])
+}
+fem$survivors <- round(surv)
+head(fem, 3)
+tail(fem, 3)
+@ 
+\end{frame}
+
+\begin{frame}[fragile]{The life table, men}
+\scriptsize
+<<ltam>>=
+man <- both[both$sex == "man", ]
+surv <- numeric(NROW(man)) # Reserves memory
+surv[1] <- 100000 # Any number
+for (i in 2:101){
+    surv[i] <- surv[i-1] * (1 - man$risk[i-1])
+}
+man$survivors <- round(surv)
+head(man, 3)
+tail(man, 3)
+@ 
+\end{frame}
+
+\begin{frame}[fragile]{The survivor functions}
+\scriptsize
+<<suurvf,fig.height=4>>=
+plot(0:100, fem$survivors / 100000, type = "l", col = "red", 
+     xlab = "Age", ylab = "Surviving fraction", axes = FALSE)
+axis(2, at = c(0, 0.5, 1)); axis(1); box()
+lines(0:100, man$survivors / 100000, col = "blue")
+abline(h = 0); abline(v = 0); text(65, 0.75, "Men", col = "blue")
+abline(h = 0.5, lty = 3); text(88, 0.85, "Women", col = "red")
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{Median life lengths}
+
+Women:  
+<<womenmed>>=
+min(fem$age[fem$survivors < 50000])
+@   
+
+Men:  
+<<menmed>>=
+min(man$age[man$survivors < 50000])
+@   
+
+\end{frame}
+
+\begin{frame}[fragile]{The survivor function}
+
+
+The \emp{survival function} $S(t), \; t > 0$, is defined as
+  \emp{the probability of surviving past $t$}, $t > 0$, or with a formula,
+\begin{equation*}
+S(t) = P(T \ge t), \quad t > 0,
+\end{equation*}
+where $T$ is the (random) life length under study. 
+\begin{itemize}
+\item In statistical language, \emp{$T$} is called a \emp{random variable}. 
+\item $T$ is the (future) life length of a randomly
+chosen newborn.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{The density function}
+
+The \emp{density function} $f$ is defined as minus the derivative of the
+survival function, or
+\begin{equation*}
+f(t) = -\frac{d}{d t} S(t), \quad t > 0.
+\end{equation*}
+so we get
+\begin{equation*}
+P(a < T \le b) = \int_a^b f(t) dt
+\end{equation*}
+
+Not so much used in survival analysis.
+
+\end{frame}
+%% \begin{figure}[ht!]
+%% \pspicture(-1, -1)(10,3)
+%% \psaxes[ticks=none,labels=none,linewidth=1pt]{->}(9,2.5)
+%% \psbezier(0,0)(3,4)(6,0.1)(8.5,0)
+%% \uput[90](0.5,2.3){$f(t)$}
+%% \uput[90](9.2, 0){$t$}
+%% \uput[90](4,-1.5\baselineskip){$t_0$}
+%% \uput[90](5.2,-1.5\baselineskip){$t_0 + s$}
+%% \psline[linestyle=dashed](4,-0.1)(4,1.75)
+%% \psline[linestyle=dashed](5,-0.1)(5,1.4)
+%% \psline{->}(4.5, 1)(5.2,2.2)
+%% \uput[90](5.5,2.2){$P(t_0 \le T < t_0 + s)$}
+%% \endpspicture
+%% \caption[Interpretation of the density function]{Interpretation of the density function $f$.}
+%% \label{fig:f}
+%% \end{figure}
+%%The intuitive interpretation of this definition is that, for small enough
+%%$s$, the following approximation is close to the true value:
+%%$$
+%%P(t_0 \le T < t_0 + s) \approx s f(t_0)
+%%$$
+%% This is illustrated in
+%% Figure~\ref{fig:f}; for a short enough interval $(t_0, t_0+s]$, the
+%% probability of an observation falling in that interval is well
+%% approximated by the area of a rectangle with sides of lengths $s$ and
+%% $f(t_0)$, or $ s f(t_0)$. The formal mathematical definition as a limit is
+%% given in equation \eqref{eq:dens}.
+%% \begin{equation}\label{eq:dens}
+%% f(t) = \lim_{s \rightarrow 0} \frac{P(t \le T < t + s)}{s}, \quad t > 0.
+%% \end{equation}\index{density function|)}
+
+
+\begin{frame}[fragile]{The hazard function}
+
+  \begin{itemize}
+\item The \emp{hazard function} is central to the understanding of survival
+analysis. 
+\item One way of thinking of it is as an ``instant
+probability''; 
+\item at a given age $t$, it measures the risk of dying in a short
+interval $(t, t + s)$ immediately after $t$, for an individual \emp{who
+  still is alive at $t$}.
+\end{itemize}
+
+\begin{equation*}
+h(t) = \lim_{s \rightarrow 0}\frac{P(t \le T < t + s \mid T \ge t)}{s}
+\end{equation*}
+$$
+P(t_0 \le T < t_0 + s \mid T \ge t_0) \approx s h(t_0)
+$$
+%%Note the difference between the density and the hazard functions. The
+%%former is (the limit of) an \emph{unconditional} probability, while the
+%%latter is (the limit of) a 
+%%\emph{conditional} probability\index{conditional probability}. Otherwise, the
+%%hazard function is also a kind of density function, with a similar
+%%graphical interpretation, see Figure~\ref{fig:h}. 
+%% \begin{figure}[ht!]
+%% \pspicture(-1, -1)(10,3)
+%% \psaxes[ticks=none,labels=none,linewidth=1pt]{->}(9,2.5)
+%% \psbezier(0,0)(3,2)(6,1.5)(8.5,2.00)
+%% \uput[90](0.5,2.3){$h(t)$}
+%% \uput[90](9.2, 0){$t$}
+%% \uput[90](4,-1.5\baselineskip){$t_0$}
+%% \uput[90](5.2,-1.5\baselineskip){$t_0 + s$}
+%% \psline[linestyle=dashed](4,-0.1)(4,1.5)
+%% \psline[linestyle=dashed](5,-0.1)(5,1.55)
+%% \psline{->}(4.5, 1)(5.2,2.2)
+%% \uput[90](5.5,2.2){$P(t_0 \le T < t_0 + s \mid T \ge t_0)$}
+%% \endpspicture
+%% \caption[Interpretation of the hazard function]{Interpretation of the hazard function $h$.}
+%% \label{fig:h}
+%% \end{figure}\index{hazard function|)}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{The cumulative hazard function}
+
+The \emp{cumulative hazard function}
+is
+defined as the integral of the hazard function,
+\begin{equation*}
+H(t) = \int_0^t h(s) ds, \quad t \ge 0.
+\end{equation*}
+%That is, an intuitive interpretation is that the cumulative hazard function
+%successively accumulates the instant risks.
+
+The cumulative hazard function is \emp{important} because it is fairly \emp{easy to
+estimate nonparametrically} (i.e., without
+any restrictions), in contrast to the hazard and density functions. 
+
+\emp{Theoretical relation}:
+\begin{equation*}
+  S(t) = e^{-H(t)}, \quad t > 0,
+\end{equation*}
+
+for \emp{continuous} distributions $S$.
+\end{frame}
+
+%% \begin{example} The exponential distribution \end{example}
+
+%% Perhaps the simplest continuous life length distribution is the
+%% \emph{exponential distribution}. It is simple because its hazard function
+%% is constant:
+%% \begin{equation*}
+%% h(t) = \lambda, \quad \lambda > 0, \; t \ge 0.
+%% \end{equation*}
+%% From this it is easy to calculate the other functions that characterize the
+%% exponential distribution. The cumulative hazards function is
+%% \begin{equation*}
+%% H(t) = \lambda t, \quad \lambda > 0,\; t \ge 0,
+%% \end{equation*}
+%% the survival function is
+%% \begin{equation*}
+%% S(t) = e^{-\lambda t}, \quad \lambda > 0,\; t \ge 0,
+%% \end{equation*}
+%% and the density function is
+%% \begin{equation*}
+%% f(t) = \lambda e^{-\lambda t}, \quad \lambda > 0,\; t \ge 0.
+%% \end{equation*}
+%% The property of constant hazard implies \emph{no aging}. This is not a
+%% realistic property for human mortality, but, as we will see, a useful
+%% benchmark, and a useful model for modelling mortality over short time
+%% intervals (\emph{piece-wise constant hazard}). 
+%% \index{cumulative hazard function|)} 
+%% The exponential distribution is described in detail in 
+%% Appendix~\ref{app:B}.\eex\index{model!continuous|)}
+
+%% \section{Discrete time models}
+%% \index{model!discrete|(}
+%% So far we have assumed, implicitly or explicitly, that time is
+%% continuous. We will now introduce discrete time survival models, and the
+%% reason is two-fold: (i) Even if data are generated from truly continuous
+%% time models, nonparametric estimation of these models will, as will be
+%% shown later, give rise to estimators corresponding to a discrete time
+%% model. This is an inherent property of nonparametric maximum likelihood
+%% estimators. Thus, in order to study the properties of these estimators, we
+%% need some knowledge of discrete time models. (ii) Data are discrete,
+%% usually through grouping. For instance, life lengths may be measured in
+%% full years, introducing \emph{tied data}\index{tied data}.
+
+%% It is important to realize that in practice all data are discrete. For
+%% instance, it
+%% is impossible to measure time with infinite precision. Therefore, all data
+%% are more or less rounded. If data are so much rounded that the result is
+%% heavily tied data, true discrete-data models are called for.
+
+%% Discrete time models will now be introduced. Let $R$ be a discrete random
+%% variable with
+%% \begin{itemize}
+%% \item support\index{support} $(r_1, r_2, \ldots, r_k)$ (positive real numbers, usually $1,
+%%   2, \ldots$ or $0, 1, 2, \ldots$),
+%% \item probability mass function
+%% \begin{equation*}
+%% p_i = P(R = r_i), \quad i = 1, \ldots, k,
+%% \end{equation*}
+%% with $p_i > 0, \quad i = 1, \ldots, k$
+%% and $\sum_{i=1}^k p_i = 1$.
+%% \end{itemize}
+%% Then
+%% %\vspace{\baselineskip}
+%% %\begin{center}
+%% %\shadowbox{
+%% %\begin{Beqnarray}
+%% \begin{equation*}
+%% F(t)  =  \sum_{i: r_i \le t} p_i, \quad x -\infty < t < \infty,
+%% \end{equation*}
+%% is the cumulative distribution function, and
+%% \begin{equation}
+%% S(t) = \sum_{i: r_i \ge x} p_i, \quad x -\infty < t < \infty,
+%% %\end{Beqnarray*}
+%% \end{equation}
+%% is the survival function.
+%% % }
+%% %\end{center}
+
+%% % \psset{yunit=1.2cm}
+
+%% % \begin{figure}
+%% % \pspicture(-1, -1)(10,2)% Density function
+%% % \psaxes[ticks=none,labels=none,linewidth=1pt]{->}(9,1.5)
+%% % \uput[0](-0.7,0){{  0}}
+%% % \uput[0](-0.7,1){{  1}}
+%% % \uput[90](9,-1.5\baselineskip){{ $x$}}
+%% % \uput[90](1,-1.5\baselineskip){ 1}
+%% % \uput[90](4,-1.5\baselineskip){ 4}
+%% % \uput[90](6,-1.5\baselineskip){ 6}
+%% % \uput[90](0.5,1.2){{ $p(x)$}}
+%% % \psline(1,0)(1,0.2)
+%% % \psline(4,0)(4,0.5)
+%% % \psline(6,0)(6,0.3)
+%% % \psline[linewidth=1pt](-0.1,1)(0.1,1) %tick mark on y axis
+%% % %\uput[90](1.5,0.1){\small 0.2}
+%% % %\uput[90](4.5,0.25){\small 0.5}
+%% % %\uput[90](6.5,0.1){\small 0.3}
+%% % \endpspicture
+%% % \caption{Discrete time probability function.}
+%% % \label{fig:discprob}
+%% % \end{figure}
+
+%% % \begin{figure}
+%% % \pspicture(-1, -1)(10,2)% Survival function
+%% % \psaxes[ticks=none,labels=none,linewidth=1pt]{->}(9,1.5)
+%% % \uput[0](-0.7,0){{  0}}
+%% % \uput[0](-0.7,1){{  1}}
+%% % \uput[90](9,-1.5\baselineskip){{ $x$}}
+%% % \uput[90](1,-1.5\baselineskip){ 1}
+%% % \uput[90](4,-1.5\baselineskip){ 4}
+%% % \uput[90](6,-1.5\baselineskip){ 6}
+%% % \uput[90](0.5,1.2){{ $F(x)$}}
+%% % \psline(0,0)(1,0)
+%% % \psline[linestyle=dotted](1,0)(1,0.2)
+%% % \psline(1,0.2)(4,0.2)
+%% % \psline[linestyle=dotted](4,0.2)(4,0.7)
+%% % \psline(4,0.7)(6,0.7)
+%% % \psline[linestyle=dotted](6,0.7)(6,1)
+%% % \psline(6,1)(9,1)
+%% % \psline[linewidth=1pt](-0.1,1)(0.1,1) %tick mark on y axis
+%% % \endpspicture
+%% % \caption{Discrete time cumulative probability function.}
+%% % \label{fig:disccdf}
+%% % \end{figure}
+
+%% The discrete time hazard function is defined as
+%% \begin{equation}
+%% h_i = P(R = r_i \mid R \ge r_i) = \frac{p_i}{\sum_{j=i}^k p_j},
+%% \quad i = 1, \ldots, k.\label{eq:alpha}
+%% \end{equation}
+%% Note that here, the hazard at any given time point is a \emph{conditional
+%%   probability}, so it must always be bounded to lie between zero and
+%% one. In the continuous case, on the other hand, the hazard function may
+%% take any positive value. Further note that if, like here, the support is finite,
+%% the last ``hazard atom'' is always equal to one (having lived to the ``last
+%% station'', one is bound to die).
+
+%% The system \eqref{eq:alpha} of equations has a unique solution, easily
+%% found by recursion:
+%% %\begin{equation*}
+%% %h_i = \frac{p_i}{1-\sum_{j=1}^{i-1} p_j}, \quad i = 1, \ldots k,
+%% %\end{equation*}
+%% %which has an ``inverse'':
+%% \begin{equation}\label{eq:rec}
+%% p_i = h_i \prod_{j=1}^{i-1} (1 - h_j), \quad i = 1, \ldots, k.
+%% \end{equation}\label{eq:sol}
+%% From this we get the discrete time survival function at each support point as
+%% \begin{equation*}
+%% S(r_i )  =  \sum_{j = i}^k p_j
+%%          =  \prod_{j = 1}^{i-1} (1-h_j), \quad i = 1, \ldots, k,
+%% \end{equation*}
+%% and the general definition
+%% \begin{equation}
+%% S(t)  =  \prod_{j: r_j < t} \left(1 - h_j\right), \quad t \ge 0
+%% \end{equation}\label{eq:discsur}
+%% It is easily seen that $S$ is decreasing, $S(0) = 1$, and $S(\infty) = 0$,
+%% as it should be.
+
+%% \begin{example}The geometric distribution\end{example}
+%% The \emph{geometric} distribution\index{Distributions!geometric|(} has
+%% support on $\{1, 2, \ldots\}$ (another version also includes zero in the
+%% support, this is the case for the one in \R), and the hazard function $h$ is constant:
+%% \begin{equation}
+%% h_i = h, \quad 0 < h < 1, \; i = 1, 2, \ldots.
+%% \end{equation}
+%% Thus, the geometric distribution is the discrete analogue to the
+%% exponential distribution in that it implies no aging. The probability mass
+%% function is, from \eqref{eq:sol},
+%% \begin{equation*}
+%% p_i = h (1-h)^{i-1}, i = 1, 2, \ldots,
+%% \end{equation*}
+%% and the survival function becomes, from \eqref{eq:discsur},
+%% \begin{equation*}
+%% S(t) = (1-h)^{[t]}, \quad t > 0,
+%% \end{equation*}
+%% where $[t]$ denotes the largest integer smaller than or equal to $t$
+%% (rounding downwards). In Figure~\ref{fig:geom2} the four functions for a
+%% geometric distribution with $h = 0.25$ are plotted.
+%% \begin{figure}[ht!]
+%% <<geom2,echo=FALSE,fig.height=6>>=
+%% source("plgeo.R")
+%% plgeo(h = 0.25, maxval = 10)
+%% @ 
+%% \caption[The geometric distribution]{The geometric distribution with success probability 0.25.}
+%% \label{fig:geom2}
+%% \end{figure}
+%% \eex
+%% \index{Distributions!geometric|)}
+
+%% % \subsection{Summing it up}
+
+%% % \underline{Relations:}
+
+%% % \begin{align*}
+%% % h(t) &= \frac{d}{dt} H(t) \\
+%% % h(t) &= \frac{f(t)}{S(t)}
+%% % \end{align*}
+
+%% %\subsection{Constant and piecewise constant hazard}
+%% \index{model!discrete|)}
+
+\begin{frame}[fragile]{Nonparametric estimators}
+  
+An extremely simple data set:
+\emp{$4$, $2^*$, $6$, $1$, $3^*$} (starred observations are right censored) 
+
+<<simpdata,echo=FALSE,fig.height = 4.5>>=
+plot(c(0, 4), c(1, 1), type = "l", ylim = c(0.5, 5.5), xlim = c(0, 8),
+     ylab = "ID", xlab = "Duration", col = "blue", axes = FALSE)
+axis(2)
+axis(1, at = c(0, 1, 4, 6))
+box()
+abline(v = 0)
+abline(v = c(1, 4, 6), lty = 2)
+points(4.1, 1, pch = "+", cex = 2)
+lines(c(0, 2), c(2, 2), col = "blue")
+points(2, 2, pch = "0")
+lines(c(0, 6), c(3, 3), col = "blue")
+points(6.1, 3, pch = "+", cex = 2)
+lines(c(0, 1), c(4, 4), col = "blue")
+points(1.1, 4, pch = "+", cex = 2)
+lines(c(0, 3), c(5, 5), col = "blue")
+points(3, 5, pch = "o")
+@ 
+\end{frame}
+
+\begin{frame}[fragile]{Risk sets and hazard atoms}
+\small  
+The \emp{risk set} at time $t$ is
+\begin{equation*}
+R(t) = \{\text{all individuals under observation at $t-$}\}, t > 0.
+\end{equation*}  
+
+and the \emp{hazard atom} at $t$ is
+
+\begin{equation*}
+\hat{h}(t) = \frac{\# \{\text{deaths at $t$}\}}{\# R(t)}, t > 0  
+\end{equation*}  
+
+Not defined if $\#R(t) = 0$.
+ 
+We get
+ 
+\begin{equation*}
+  \begin{split}
+    \hat{h}(1) &= \frac{1}{5} = 0.2\\
+    \hat{h}(4) &= \frac{1}{2} = 0.5\\
+    \hat{h}(6) &= \frac{1}{1} = 1.0 \\
+ \end{split}
+\end{equation*}
+
+\end{frame}
+
+\begin{frame}[fragile]{The Nelson-Aalen estimator}
+
+  \scriptsize
+From the theoretical relation we immediately get
+\begin{equation*}
+\hat{H}(t) =  \sum_{s \le t} \hat{h}(s), \quad t \ge 0
+\end{equation*}
+
+<<cumhazex,fig.height=4.5,echo=FALSE>>=
+plot(c(0, 1, 1, 4, 4, 6, 6), c(0, 0, 0.2, 0.2, 0.7, 0.7, 1.7), 
+     type = "s", col = "blue", xlab = "Duration", ylab = "Cum. hazards",
+     axes = FALSE)
+axis(2, at = c(0, 0.2, 0.7, 1.7), cex.axis = 0.7)
+axis(1)
+box()
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{The Kaplan-Meier estimator}
+
+
+\begin{equation*}\label{eq:km2}
+\hat{S}(t) =  \prod_{s < t} \bigl(1 - \hat{h}(s)\bigr), \quad t \ge 0,
+\end{equation*}
+
+\begin{itemize}
+\item \emp{Heuristic interpretation:} In order to survive time $t$, one must survive
+\emp{all} ``spikes'' (or shocks) that come before time $t$. 
+\item The
+multiplication principle for conditional 
+probabilities then gives the result.  
+\end{itemize}
+
+Simple alternative: 
+\begin{equation*}
+  S^\star(t) = e^{-\hat{H}(t)}
+\end{equation*}
+\end{frame}
+
+\begin{frame}[fragile]{Doing it in \R: Loading eha}
+
+\scriptsize  
+For the male mortality data set {\tt mort},  
+<<echo=TRUE>>=
+library(eha)
+head(mort)
+@
+
+\emp{Start event} is twentieth birthdate, \emp{stop} event is death or fortieth
+birthdate, whichever comes first. Left truncation and right censoring.
+\end{frame}
+
+\begin{frame}[fragile]{Nonparametric estimation}
+
+\scriptsize
+%In the {\bf R} package {\tt eha},
+% the code for the Nelson-Aalen and Kaplan-Meier plots is
+<<esthas,eval=FALSE>>=
+par(mfrow = c(1, 2))# Two plots, "one row, two columns".
+with(mort, plot(Surv(enter, exit, event), fn = "cum"))
+with(mort, plot(Surv(enter, exit, event), fn = "surv"))
+@
+and the result is
+<<nonp2,echo=FALSE,fig.height=4>>=
+par(mfrow = c(1, 2)) 
+with(mort, plot(Surv(enter, exit, event), fn = "cum"))
+with(mort, plot(Surv(enter, exit, event), fn = "surv",
+     col.con = "black")) # See > ?plot.Surv
+@
+
+\end{frame}
+
+
+%% The package \pkg{eha} must be loaded for this to work. Note the use of the
+%% function \emph{with}\index{Functions!\fun{with}}; it tells the \fun{plot}
+%% function that it should get its data ({\tt enter, exit, event}) from the
+%% data frame \data{mort}. The function \fun{Surv}\index{Functions!\fun{Surv}}
+%% from the package \pkg{survival} creates a ``survival object'', which is
+%% used in many places. It is for instance \emph{the response} in all
+%% functions that perform regression analysis on survival data.
+
+%% Note that the ``Duration'' in Figure~\ref{fig:pshazsur} is duration (in
+%% years) since the day each man became twenty years of age. They are followed until
+%% death or age forty, whichever comes first.  The right hand figure shows
+%% that approximately 25\% of the men alive at age twenty died before they
+%% became forty.
+
+\begin{frame}[fragile]{The Kaplan-Meier estimator as  numbers}
+\scriptsize  
+<<rsa2>>=
+indx <- sample(NROW(mort), size = 50, replace = FALSE)
+rsa <- mort[indx, ]
+fit <- coxph(Surv(enter, exit, event) ~ 1, data = rsa)
+s.fit <- survfit(fit)
+summary(s.fit)
+@ 
+
+\end{frame}
+
+\end{document}
+
+\end{document}
