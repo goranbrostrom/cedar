@@ -1,0 +1,56 @@
+Parametric models
+========================================================
+author: Göran Broström
+date: 8 June, 2015
+
+Discrete time models
+========================================================
+
+* $t_1 < t_2 < \cdots < t_k$ possible event times.
+
+* $P(\mbox{event at}\; t_j \mid \mbox{no event before}; x) =
+\psi(\alpha_j, \boldsymbol{\beta}, \mathbf{x})$.
+
+* Problem: Many extra parameters to estimate
+($\boldsymbol{\alpha}$).
+
+* Advantage: Fully parametric model; hazard function is fully
+specified.
+
+* But what is *proportional hazards* in discrete time?
+
+
+Proportional Hazards in Discrete Time
+=====================================
+
+Assume *continuous* proportional hazards, and a partition of
+time: $0 < t_1 < t_2 < \cdots < t_k = \infty$. Then
+
+
+$$h_j = P(t_{j-1} \le T < t_j \mid T \ge t_{j-1}; \; \mathbf{x} = 0)  = 
+\frac{S_0(t_{j-1}) - S_0(t_j)}{S_0(t_{j-1})}$$
+
+then 
+
+$$
+P(t_{j-1} \le T < t_j \mid T \ge t_{j-1}; \; \mathbf{x}) =
+$$
+
+$$
+1 - (1 - h_j)^{\exp(\boldsymbol{\beta} \mathbf{x})} = 1 - e^{\alpha_j \exp(\boldsymbol{\beta} \mathbf{x})}
+$$
+
+which is *logistic regression* with the *cloglog* link.
+
+Doing it in R
+=================
+
+Use *coxreg* with *method = "ml"*
+
+```{r}
+library(eha)
+fit <- coxreg(Surv(enter, exit, event) ~ ses + birthdate, method = "ml", data = mort)
+coef(fit)
+fit0 <- coxreg(Surv(enter, exit, event) ~ ses + birthdate, data = mort)
+coef(fit0)
+```
