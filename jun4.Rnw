@@ -768,7 +768,28 @@ Result: {\tt m.age = (10, 25]} not OK.
 
 %----------------------------------------------------------------------
 
+\begin{frame}[fragile]{Estimation with an interaction}
+\scriptsize  
+<<inter>>=
+res2  <- coxreg(Surv(enter, exit, event) ~ ses * birthdate, 
+                data = mort)
+res2
+@
 
+\end{frame}
+
+\begin{frame}[fragile]{Centering}
+
+\scriptsize  
+
+<<center>>=
+birthdate.c <- mort$birthdate - 1810
+res3  <- coxreg(Surv(enter, exit, event) ~ ses * birthdate.c, 
+                data = mort)
+res3
+@
+
+\end{frame}
 
 %-----------------------------------------------------------SLIDE-------
 
