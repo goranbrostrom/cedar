@@ -770,11 +770,24 @@ Result: {\tt m.age = (10, 25]} not OK.
 
 \begin{frame}[fragile]{Estimation with an interaction}
 \scriptsize  
-<<inter>>=
+<<inter, results='asis'>>=
 res2  <- coxreg(Surv(enter, exit, event) ~ ses * birthdate, 
-                data = mort)
-res2
+                data = mort, max.survs = 3000)
+dr <- drop1(res2, test = "Chisq")
+library(xtable)
+xtable(dr)
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{The result}
+\scriptsize
+<<interpar,results='asis'>>=  
+ltx(res2, digits = 4)
 @
+
+\emp{Interpretation:} at {\tt birthdate = 0}, the coefficient for {\tt ses} is
+$-53.514$; an \emp{extreme extrapolation}!
 
 \end{frame}
 
@@ -782,28 +795,40 @@ res2
 
 \scriptsize  
 
-<<center>>=
+<<center,results='asis'>>=
 birthdate.c <- mort$birthdate - 1810
 res3  <- coxreg(Surv(enter, exit, event) ~ ses * birthdate.c, 
                 data = mort)
-res3
+ltx(res3, digits = 4)
 @
+\emp{Interpretation:} at {\tt birthdate = 1810}, the coefficient for {\tt
+  ses} is 
+$-0.558$; a \emp{reasonable interpolation}!
 
 \end{frame}
 
 %-----------------------------------------------------------SLIDE-------
 
+\begin{frame}{Handling interactions}
+
+\begin{itemize}
+\item Main effects of \emp{minor interest}
+\item \emp{Center} involved covariates!
+\item If the interaction effect is significant, consider \emp{separate analyses} (one for \emp{ses = "lower"} and one for \emp{ses = "upper"})
+\end{itemize}
+
+\end{frame}
 \begin{frame}{Estimation}
 
 \begin{itemize}
-\item Model: $h(t; \mathbf{x}) = h_0(t) \exp{(\boldsymbol{\beta}
+\item \emp{Model}: $h(t; \mathbf{x}) = h_0(t) \exp{(\boldsymbol{\beta}
 \mathbf{x})}$.
-\item Data: $(t_{0i}, t_i, d_i, \mathbf{x}_i), \; i = 1, \ldots, n$.
-\item Two components to estimate:
+\item \emp{Data}: $(t_{0i}, t_i, d_i, \mathbf{x}_i), \; i = 1, \ldots, n$.
+\item \emp{Two components} to estimate:
    \begin{itemize}
-      \item The regression coefficients $\boldsymbol{\beta} = (\beta_1,
+      \item The \emp{regression coefficients} $\boldsymbol{\beta} = (\beta_1,
 \ldots, \beta_k)$.
-     \item The baseline hazard function $h_0(t)$.
+     \item The \emp{baseline hazard} function $h_0(t)$.
    \end{itemize}
 \end{itemize}
 
@@ -937,81 +962,8 @@ tied} data. Efron's method surprisingly robust.
 
 %-----------------------------------------------------------SLIDE-------
 
-\begin{frame}[fragile]{Male mortality, Skellefteå 1800--1820}
-\scriptsize
-<<mmor,echo=TRUE>>=
-library(eha)
-data(male.mortality)
-mm <- male.mortality
-res <- coxreg(Surv(enter, exit, event) ~ ses + birthdate, 
-              data = mm)
-@
-
-\end{frame}
-
-
-\begin{frame}{Discrete Time Methods}
-
-\begin{itemize}
-\item $t_1 < t_2 < \cdots < t_k$ possible event times.
-\item $P(\mbox{event at}\; t_j \mid \mbox{no event before}; \bx) =
-\psi(\alpha_i, \bbeta, \bx)$.
-\item Problem: Many extra parameters to estimate
-($\boldsymbol{\alpha}$).
-\item Advantage: Fully parametric model; hazard function is fully
-specified.
-\item But what is \emp{proportional hazards in discrete time}?
-\end{itemize}
-\end{frame}
-
-%-----------------------------------------------------------------------
-
-\begin{frame}{Proportional Hazards in Discrete Time}
-
-Assume \emp{continuous} proportional hazards, and a partition of
-time: $0 < t_1 < t_2 < \cdots < t_k = \infty$. Then
-
-
-\begin{eqnarray*}
-P(t_{j-1} \le T < t_j \mid T \ge t_{j-1}; \; \bx) & = &
-\frac{S(t_{j-1}\mid \bx) - S(t_j\mid \bx)}{S(t_{j-1} \mid \bx)} \\
-& = & 1 - \frac{S(t_j \mid \bx)}{S(t_{j-1} \mid \bx)} \\
-& = & 1 -
-\left(\frac{S_0(t_j)}{S_0(t_{j-1})}\right)^{\exp(\bbeta\bx)} \\
-&=& 1 - (1 - h_i)^{\exp(\bbeta\bx)}
-\end{eqnarray*}
-with $h_i = P(t_{j-1} \le T < t_j \mid T \ge t_{j-1}; \; \bx =
-\mathbf{0})$,
-$j = 1, \ldots, k$.
-
-
-\end{frame}
 
 %-----------------------------------------------------------SLIDE-------
-
-\begin{frame}{Logistic Regression}
-\begin{itemize}
-\item Let
-\begin{equation*}
-X = \left\{ \begin{array}{ll}
-          1, & 0 \le T < t_1 \\
-          2, & t_1 \le T < t_2 \\
-         \cdots & \cdots \\
-          k, & T > t_{k-1}
-         \end{array} \right.
-\end{equation*}
-\item Then $P(X = j \mid X \ge j; \; \bx) =  1 - (1 -
-h_i)^{\exp(\bbeta\bx)}$
-\item Let $(1 - h_j) = \exp(-\exp(\alpha_j)), \; j = 1, \ldots, k$.
-\item Then $P(X = j \mid X \ge j; \; \bx) =  1 - \exp(-\exp\big(\alpha_j
-+ \bbeta\bx)\big)$
-\item This is \emp{logistic regression} with \emp{cloglog link}!
-\item If the $h$s are ``small'', can approximate with logit link.
-\end{itemize}
-
-\end{frame}
-
-%-----------------------------------------------------------------------
 
 \begin{frame}{Asymptotics}
 \begin{itemize}
@@ -1033,7 +985,6 @@ are highly unreliable, as in all non-linear regression!!
 
 \end{frame}
 
-%-----------------------------------------------------------SLIDE-------
 %-----------------------------------------------------------SLIDE-------
 
 \begin{frame}{The Wald test}

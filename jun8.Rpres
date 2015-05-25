@@ -42,8 +42,8 @@ $$
 
 which is *logistic regression* with the *cloglog* link.
 
-Doing it in R
-=================
+Doing it in R (coxreg)
+======================
 
 Use *coxreg* with *method = "ml"*
 
@@ -51,6 +51,61 @@ Use *coxreg* with *method = "ml"*
 library(eha)
 fit <- coxreg(Surv(enter, exit, event) ~ ses + birthdate, method = "ml", data = mort)
 coef(fit)
+```
+
+Standard (No big difference):
+
+```{r, echo=FALSE}
 fit0 <- coxreg(Surv(enter, exit, event) ~ ses + birthdate, data = mort)
 coef(fit0)
 ```
+
+Doing it in R (logistic regression)
+===================================
+
+```{r }
+mort.bin <- toBinary(mort)
+dim(mort.bin)
+dim(mort)
+```
+
+Summary of mort.bin
+===================
+
+<small>
+```{r}
+kable(head(mort.bin))
+```
+</small>
+
+The logistic regression 
+=======================
+
+Don't do this!
+
+```{r logistic}
+##fit <- glm(event ~ ses + birthdate + riskset, data = mort.bin, family = binomial(link=cloglog))
+##fit$coef[1:2]
+```
+Because there are 274 parameters to estimate and `r nrow(mort.bin)` observations; *glm chokes*!
+
+Using 'glmmboot'
+================
+
+```{r glmmboot,cache=TRUE}
+fit.boot <- glmmboot(event ~ ses + birthdate, cluster = riskset, data = mort.bin, family = binomial(link = cloglog))
+round(fit.boot$coef, 4)
+round(fit0$coef, 4)
+```
+
+Benchmarking
+============
+
+```{r benchmark, cache=TRUE}
+system.time(coxreg(Surv(enter, exit, event) ~ ses + birthdate, method = "ml", data = mort))
+system.time(glmmboot(event ~ ses + birthdate, cluster = riskset, data = mort.bin, family = binomial(link = cloglog)))
+```
+
+"Really discrete" data
+======================
+
