@@ -29,7 +29,7 @@ engine='R',dev='pdf',fig.width=10,fig.height=5
 <<include=FALSE>>=
 library(knitr)
 opts_chunk$set(
-fig.path='figs/',include=TRUE,cache=TRUE
+fig.path='figs/',include=TRUE,cache=TRUE,cache.path="cache4/"
 )
 @
 
