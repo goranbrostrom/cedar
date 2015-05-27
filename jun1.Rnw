@@ -12,7 +12,7 @@
 \newcommand{\R}{{\bf R}}
 \newcommand{\code}[1]{{\tt #1}}
 
-\title{Overview of The Course}
+\title{Overview of the course content}
 
 \author{Göran Broström}
 
@@ -63,7 +63,6 @@ From \emp{\url{http://www.r-project.org/about.html}}
   particular \emp{matrices}, 
 \item    intermediate
   \emp{tools for data analysis}, 
-\item    superb \emp{graphical facilities}, and
 \item    a simple and effective \emp{programming language}
   which includes 
   \begin{itemize}
@@ -82,11 +81,15 @@ From \emp{\url{http://www.r-project.org/about.html}}
   \begin{itemize}
   \item as in \emp{free beer},
   \item as in \emp{free speech}.
-  \end{itemize}
+  \begin{itemize}
 \item \R\ can be installed on as many computers you like
 \item \R\ is \emp{open-source}.
 \item \R\ has thousands of \emp{add-on packages}.
- 
+\item \emp{You} can contribute with an add-on package.
+\end{itemize}
+\end{itemize}
+\item \R\ is built by \emp{volonteers}.
+\item Very fast \emp{responses} to \emp{bug reports}.
 \end{itemize}
 
 \end{frame}
@@ -96,14 +99,14 @@ From \emp{\url{http://www.r-project.org/about.html}}
 RStudio allows you to \emp{run R} in a more \emp{user-friendly} environment
 
 \begin{itemize}
-
-\item It is \emp{free} and \emp{open-source},
 \item Tools for \emp{interacting} statistical \emp{analysis} with report
   \emp{writing}. 
   \begin{itemize}
     \item \emp{R markdown}
     \item \emp{knitr}
+    \item \emp{html}, \emp{pdf} and \emp{docx} output
     \end{itemize}
+\item Tools for \emp{reproducible research}    
 \item Tools for \emp{version control} (git, gitHub)
 \item Support: \emp{\url{http://www.rstudio.com}}
 \end{itemize}
@@ -148,6 +151,29 @@ Focus is on reproducing results \emp{from a single set of observations}.
   
 \end{frame}
 
+\begin{frame}{Minimal rules for reproducibility}
+
+\begin{itemize}
+\item Everything with a \emp{script}
+\begin{itemize}
+\item \emp{No} cut-and-paste!
+\end{itemize}
+\item Organize \emp{data} and \emp{code}
+\item Turn scripts into \emp{reproducible reports}
+\begin{itemize}
+\item R markdown
+\item knitr
+\end{itemize}
+\item Turn repeated code into \emp{functions}
+\item Use \emp{version control}
+\begin{itemize}
+\item \emp{git}
+\item \emp{GitHub}
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
 \begin{frame}{Version control}
   
 \begin{itemize}
@@ -186,6 +212,7 @@ The \emp{core} of the course. It is about
   \begin{itemize}
   \item \emp{Mortality}
   \item \emp{Fertility}
+  \item And many other.
 \end{itemize}      
 \end{itemize}
 
