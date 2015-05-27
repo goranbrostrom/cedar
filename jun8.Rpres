@@ -6,6 +6,10 @@ date: 8 June, 2015
 Discrete time models
 ========================================================
 
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width = 12, fig.height = 7, fig.path = 'figs8/', cache.path = 'cache8/', cache = TRUE)
+```
+
 * $t_1 < t_2 < \cdots < t_k$ possible event times.
 
 * $P(\mbox{event at}\; t_j \mid \mbox{no event before}; x) =
@@ -105,7 +109,3 @@ Benchmarking
 system.time(coxreg(Surv(enter, exit, event) ~ ses + birthdate, method = "ml", data = mort))
 system.time(glmmboot(event ~ ses + birthdate, cluster = riskset, data = mort.bin, family = binomial(link = cloglog)))
 ```
-
-"Really discrete" data
-======================
-
