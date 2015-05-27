@@ -216,7 +216,46 @@ The \emp{core} of the course. It is about
 \end{itemize}      
 \end{itemize}
 
+\end{frame}
 
+\begin{frame}[fragile]{EHA models, examples}
+
+<<ehamodels,fig.height=6,echo=FALSE>>=
+par(mar=c(.1, .1, .1, .1))
+frame()
+par(usr=c(0,100,0,100))
+# first figure
+xx <- c(0, 10, 10, 0)
+yy <- c(0, 0, 10, 10)
+polygon(xx +10, yy+70)
+polygon(xx +30, yy+70)
+arrows( 22, 75, 28, 75, length=.1)
+text(c(15, 35), c(75,75), c("Alive", "Dead"), col = "blue")
+
+# second figure
+polygon(xx +60, yy+70)  
+for (j in c(55, 70, 85)) {
+    polygon(xx +80, yy+j)
+    arrows(72, (5*75 +j+5)/6, 78, (100+j*5)/6, length=.1)
+}
+text(c(65, 85,85,85), c(70,55,70,85)+5, c("Alive", "D1", "D2", "D3"), col = "blue") 
+
+# third figure
+polygon(xx+20, yy+25)
+##for (j in c(15,35)) {
+  ##  polygon(xx +40, yy+j)
+##    arrows(32, (5*30 +j+4)/6, 38, (54+j*5)/6, length=.1)
+##}
+polygon(xx + 40, yy + 25)
+polygon(xx + 60, yy + 25)
+##arrows(38, 2+(55 + 35*5)/6, 32, 2+ (150 + 40)/6, length=.1)
+arrows(32, 30, 38, 30, length = 0.1)
+arrows(52, 30, 58, 30, length = 0.1)
+arrows(72, 30, 78, 30, length = 0.1, lty = 2)
+text(c(25, 45, 65), c(30, 30, 30), c("No birth", "1 birth", "2 births"), col = "red")
+text(50, 90, "Mortality", cex = 2, col = "blue")
+text(50, 45, "Fertility", cex = 2, col = "red")
+@ 
 
 \end{frame}
 \end{document}
