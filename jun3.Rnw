@@ -145,8 +145,22 @@ text(9, 4.3, "Left truncated & right censored", col = 4)
 
 \end{frame}
 
+\begin{frame}[fragile]{Length-biased sampling, plot}
+
+<<plotsam,echo=FALSE>>=
+rep = 1000000; set.seed(101769)
+start = runif(rep, min = 1806, max = 1813)
+stopp = start + runif(rep)
+plot(c(start[1], stopp[1]), c(1, 1), type = "l", ylim = c(0.5, 100.5), xlim = c(1805.5, 1814.5), ylab = "ID", xlab = "Date")
+abline(v = 1810, lty = 2, col = "red")
+for (i in 2:100) lines(c(start[i], stopp[i]), c(i, i))
+@   
+  
+\end{frame}  
+
 \begin{frame}[fragile]{Length-biased sampling, simulation}
 
+\small
 <<sampl,echo=TRUE>>=
 rep = 1000000; set.seed(101769)
 start = runif(rep, min = 1806, max = 1813)
@@ -159,18 +173,6 @@ mean(age[cover])
 @ 
   
 \end{frame}  
-
-
-\begin{frame}[fragile]{Length-biased sampling, plot}
-
-<<plotsam,echo=FALSE>>=
-plot(c(start[1], stopp[1]), c(1, 1), type = "l", ylim = c(0.5, 100.5), xlim = c(1805.5, 1814.5), ylab = "ID", xlab = "Date")
-abline(v = 1810, lty = 2, col = "red")
-for (i in 2:100) lines(c(start[i], stopp[i]), c(i, i))
-@   
-  
-\end{frame}  
-
 
 \begin{frame}{Old age mortality}
 
