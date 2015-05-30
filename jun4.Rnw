@@ -196,8 +196,8 @@ with $\bbeta = (\beta_1, \beta_2, \ldots, \beta_k)$, then, for any $i, j$,
 
 \begin{frame}{Cox's proportional hazards model}
 
-\underline{Generalization:} Let the components of $\mathbf{x}_i$ take
-\emp{any value}, and
+%\underline{Generalization:} Let the components of $\mathbf{x}_i$ take
+%\emp{any value}, and
 \begin{itemize}
 \item Data: \emp{$(t_{i0}, t_i, d_i, \mathbf{x}_i), \; i = 1, \ldots, n$}, where
     \begin{itemize}

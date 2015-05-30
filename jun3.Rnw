@@ -23,7 +23,6 @@ fig.path='figs/jun3-', fig.height = 5
 )
 @
 
-%\SweaveOpts{prefix=TRUE,prefix.string=../../figs/ch1,height=4}
 
 \title{Event History and Survival Data}
 
@@ -160,6 +159,7 @@ mean(age[cover])
   
 \end{frame}  
 
+
 \begin{frame}[fragile]{Length-biased sampling, plot}
 
 <<plotsam,echo=FALSE>>=
@@ -169,6 +169,7 @@ for (i in 2:100) lines(c(start[i], stopp[i]), c(i, i))
 @   
   
 \end{frame}  
+
 
 \begin{frame}{Old age mortality}
 
