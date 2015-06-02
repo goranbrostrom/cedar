@@ -2,12 +2,14 @@ Parametric models
 ========================================================
 author: Göran Broström
 date: 8 June, 2015
+autosize: true
+css: style.css
 
 Discrete time models
 ========================================================
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.width = 12, fig.height = 7, fig.path = 'figs8/', cache.path = 'cache8/', cache = TRUE)
+knitr::opts_chunk$set(fig.width = 12, fig.height = 8, fig.path = 'figs8/', cache.path = 'cache8/', cache = FALSE)
 ```
 
 * $t_1 < t_2 < \cdots < t_k$ possible event times.
@@ -15,13 +17,13 @@ knitr::opts_chunk$set(fig.width = 12, fig.height = 7, fig.path = 'figs8/', cache
 * $P(\mbox{event at}\; t_j \mid \mbox{no event before}; x) =
 \psi(\alpha_j, \boldsymbol{\beta}, \mathbf{x})$.
 
-* Problem: Many extra parameters to estimate
+* ~~Problem~~: Many extra parameters to estimate
 ($\boldsymbol{\alpha}$).
 
-* Advantage: Fully parametric model; hazard function is fully
+* ~~Advantage~~: Fully parametric model; hazard function is fully
 specified.
 
-* But what is *proportional hazards* in discrete time?
+* But ~~what is proportional hazards~~ in discrete time?
 
 
 Proportional Hazards in Discrete Time
@@ -44,7 +46,7 @@ $$
 1 - (1 - h_j)^{\exp(\boldsymbol{\beta} \mathbf{x})} = 1 - e^{\alpha_j \exp(\boldsymbol{\beta} \mathbf{x})}
 $$
 
-which is *logistic regression* with the *cloglog* link.
+which is ~~logistic regression~~ with the ~~cloglog~~ link.
 
 Doing it in R (coxreg)
 ======================
@@ -76,11 +78,10 @@ dim(mort)
 Summary of mort.bin
 ===================
 
-<small>
 ```{r}
 kable(head(mort.bin))
 ```
-</small>
+
 
 The logistic regression 
 =======================
@@ -109,3 +110,84 @@ Benchmarking
 system.time(coxreg(Surv(enter, exit, event) ~ ses + birthdate, method = "ml", data = mort))
 system.time(glmmboot(event ~ ses + birthdate, cluster = riskset, data = mort.bin, family = binomial(link = cloglog)))
 ```
+
+Plot of baseline hazard
+=======================
+
+```{r basehaz, fig.height=5}
+age <- fit0$hazards[[1]][, 1]
+haz <- fit0$hazards[[1]][, 2]
+plot(age, haz, type = "h", ylim = c(0, 0.004))
+rs <- with(mort, risksets(Surv(enter, exit, event)))
+with(rs, table(n.events))
+```
+
+Plot of cumulative baseline hazard
+==================================
+
+```{r cumsum}
+#plot(age, cumsum(haz), type = "s")
+par(mfrow = c(2, 1))
+plot(fit0, xlab = "Years after 20")
+plot(age, cumsum(haz), type = "s", col = "red")
+```
+
+More ties!
+==========
+
+```{r moreties}
+mties = mort
+mties$enter = floor(mties$enter)
+mties$exit = ceiling(mties$exit)
+Y = with(mties, Surv(enter, exit, event))
+kable(head(mties))
+rs = risksets(Y)
+table(rs$n.events)
+```
+
+Comparison of methods with more ties
+====================================
+
+```{r }
+fit.e = coxreg(Y ~ ses + birthdate, data = mties)
+fit.b = coxreg(Y ~ ses + birthdate, data = mties, method = "breslow")
+fit.ml = coxreg(Y ~ ses + birthdate, data = mties, method = "ml")
+x = round(cbind(coef(fit.e), coef(fit.b), coef(fit.ml)), 4)
+colnames(x) = c('Efron', 'Breslow', 'ML')
+rownames(x) = c('ses', 'birthdate')
+kable(x)
+```
+
+~~No big deal~~
+
+Even more ties!
+==========
+
+```{r mostties}
+mties = mort
+mties$enter = 5 * floor(mties$enter / 5)
+mties$exit = 5 * ceiling(mties$exit / 5)
+Y = with(mties, Surv(enter, exit, event))
+##kable(head(mties))
+rs = risksets(Y)
+table(rs$n.events)
+with(mties, table(exit, event))
+```
+
+Comparison of methods with even more ties
+====================================
+
+```{r mostties2}
+fit.e = coxreg(Y ~ ses + birthdate, data = mties)
+fit.b = coxreg(Y ~ ses + birthdate, data = mties, method = "breslow")
+fit.ml = coxreg(Y ~ ses + birthdate, data = mties, method = "ml")
+x = round(cbind(coef(fit.e), coef(fit.b), coef(fit.ml)), 4)
+colnames(x) = c('Efron', 'Breslow', 'ML')
+rownames(x) = c('ses', 'birthdate')
+kable(x)
+```
+
+~~Still no big deal!~~ (Careful ...)
+
+Piecewise constant hazards
+==========================

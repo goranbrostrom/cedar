@@ -23,7 +23,6 @@ fig.path='figs/jun3-', fig.height = 5
 )
 @
 
-%\SweaveOpts{prefix=TRUE,prefix.string=../../figs/ch1,height=4}
 
 \title{Event History and Survival Data}
 
@@ -44,7 +43,8 @@ fig.path='figs/jun3-', fig.height = 5
 time}, 
 \item the \emp{timing of events} of interest are
 noted.
-\item Information may be \emp{incomplete} for some individuals:%Naturally, things may happen that makes it necessary to interrupt an
+\item Information may be \emp{incomplete} for some individuals:
+%Naturally, things may happen that makes it necessary to interrupt an
 %individual follow-up, such as the individual suddenly disappearing for some
  %reason. 
 
@@ -173,7 +173,6 @@ mean(age[cover])
 @ 
   
 \end{frame}  
-
 
 \begin{frame}{Old age mortality}
 
