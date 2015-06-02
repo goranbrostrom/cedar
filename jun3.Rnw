@@ -419,7 +419,7 @@ The 'csv' file \emp{BE0101N1.csv}; the top lines:
 \begin{frame}[fragile]{Reading the csv file}
 \scriptsize
 <<readcsv>>=
-pop <- read.table("../Data/BE0101N1.csv", skip = 2, header = TRUE, 
+pop <- read.table("Data/BE0101N1.csv", skip = 2, header = TRUE, 
                   sep = ";", fileEncoding = "latin1")
 summary(pop)
 @   
@@ -536,7 +536,7 @@ head(fem)
 \begin{frame}[fragile]{Put on deaths}
 \scriptsize
 <<redea>>=
-dead <- read.table("../Data/BE0101D9.csv", skip = 2, 
+dead <- read.table("Data/BE0101D9.csv", skip = 2, 
                    header = TRUE, sep = ";", fileEncoding = "latin1")
 head(dead)
 fem$deaths <- dead$X2014[dead$kön == "kvinnor"]
