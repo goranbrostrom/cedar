@@ -29,7 +29,7 @@ engine='R',dev='pdf',fig.width=10,fig.height=5
 <<include=FALSE>>=
 library(knitr)
 opts_chunk$set(
-fig.path='figs/',include=TRUE,cache=TRUE,cache.path="cache4/"
+fig.path='figs/',include=TRUE,cache=FALSE,cache.path="cache4/"
 )
 @
 
@@ -338,9 +338,6 @@ Solution: \emp{``Factorize''}; Let, for instance,
 \scriptsize
 <<skel15, message=FALSE>>=
 library(skel15)
-obs$enter <- round(obs$enter, 3)
-obs$exit <- round(obs$exit, 3)
-obs$birthdate <- round(obs$birthdate, 3)
 names(obs)
 head(obs[, c("id", "sex", "enter", "exit", "event", "mid")])
 @
@@ -558,13 +555,13 @@ ltx(fit, dr = dr, digits = 4)
 
 \end{frame}
 
-\begin{frame}[fragile]{How to present results}
-\small
-<<howtodo,results='asis'>>=
-ltx(fit, dr = dr, digits = 4)
-@   
+%\begin{frame}[fragile]{How to present results}
+%\small
+%<<howtodo,results='asis'>>=
+%ltx(fit, dr = dr, digits = 4)
+%@   
 
-\end{frame}
+%\end{frame}
 
 \begin{frame}[fragile]{A graphical presentation}
 \scriptsize
@@ -579,21 +576,21 @@ barplot(100 * bars, ylab = "Excess mortality (per cent)",
 \end{frame}
 
 \begin{frame}[fragile]{Or finer}
-  
+\scriptsize
 <<finer>>=
 cuts <- c(11, 18, seq(21, 51, by = 3))
 infants$m.grp <- cut(infants$m.age, cuts)
 res <- coxreg(Surv(enter, exit, event) ~ m.grp, data = infants)
-plot(c(0, res$coef), type = "b")
+barplot(exp(c(0, res$coef) - res$coef[5]) - 1, names.arg = cuts[-length(cuts)])
 @ 
 
 \end{frame}  
 
-\begin{frame}[fragile]{cox.zph}
+\begin{frame}[fragile]{Tesr of PH assumption: cox.zph}
 \scriptsize
 <<finerzph>>=
 res <- coxreg(Surv(enter, exit, event) ~ m.age, data = infants)
-czph <- cox.zph(res)
+(czph <- cox.zph(res))
 plot(czph, resid = FALSE, df = 6)
 @ 
 
@@ -603,7 +600,8 @@ plot(czph, resid = FALSE, df = 6)
 \begin{frame}[fragile]{Plot cumulative hazards}
 \scriptsize
 <<cumhazgrp,fig.height=5>>=
-fit0 <- coxreg(Surv(enter, exit, event) ~ sex + strata(m.age.grp), data = infants, hazards = TRUE)
+fit0 <- coxreg(Surv(enter, exit, event) ~ sex + strata(m.age.grp), 
+               data = infants, hazards = TRUE)
 plot(fit0, col = 1:3, xlab = "Age")
 @
 
@@ -612,7 +610,7 @@ plot(fit0, col = 1:3, xlab = "Age")
 \begin{frame}[fragile]{Plot cumulative hazards, log-log scale}
 \scriptsize
 <<cumhazgrpll,fig.height=5>>=
-plot(fit0, col = 1:3, xlab = "Age", fn = "loglog")
+plot(fit0, col = 1:3, xlab = "log(Age)", fn = "loglog")
 @
 
 \end{frame}
@@ -760,8 +758,8 @@ Result: {\tt m.age = (10, 25]} not OK.
 \underline{II. With interaction:}
 
 \begin{tabular}{cc}
-   &  \multicolumn{1}{c}{\bf Tumor size in mm} \\ \hline
-\bf age at diagnosis & $e^{\gamma_1 x_1 + \gamma_2 x_2 + \theta_{12} x_1 x_2}$
+   &  \multicolumn{1}{c}{\bf m.age} \\ \hline
+\bf birthdate & $e^{\gamma_1 x_1 + \gamma_2 x_2 + \theta_{12} x_1 x_2}$
 \end{tabular}
 
 \end{frame}
@@ -951,7 +949,7 @@ L(\bbeta) & = & \prod_{i=1}^k L_i(\bbeta) \\
 \item \emp{Breslow:} Consider all denominators the same. Standard in
 most software.
 \item \emp{Efron:} ``Average'' denominators of the same
-``size''. Standard in {\bf S-plus} and {\bf R}. The best
+``size''. Standard in \emp{\bf R}. The best
 approximation!
 \item In case of \emp{no ties}, all methods give the same answer.
 \item Markedly different results with \emp{moderately to heavily
@@ -1000,9 +998,12 @@ T_W = \frac{\hat{\beta}_2}{\mbox{se}(\hat{\beta}_2)}
 \item \emp{Under} $H_0$, $T_W$ has a \emp{standard normal}
 distribution: $T_W \sim N(0, 1)$.
 \item This is a \emp{large sample approximation}.
-\item \underline{Advantage:} Automatically available in all software.
-\item \underline{Drawback:} Automatically available in all software(!).
-\item \underline{And:} Gives occationally nonsensic results.
+\item \emp{Advantage:} Automatically available in all software.
+\item \emp{Drawback:} Automatically available in all software(!).
+\item \emp{And:} Gives occasionally nonsensic results.
+\begin{itemize}
+\item The \emp{Hauck-Donner} effect,
+\end{itemize}
 \end{itemize}
 \end{frame}
 
@@ -1082,7 +1083,7 @@ L(\bbeta) = \prod_i L_i(\bbeta)
 \item Checking proportionality:
 \begin{itemize}
 \item Graphical.
-\item Formal test (in {\bf S-plus} and {\bf R}).
+\item Formal test (in {\bf R}).
 \end{itemize}
 \end{itemize}
 
