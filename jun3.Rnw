@@ -511,7 +511,7 @@ summary(females)
 \scriptsize
 <<fixagefem,echo=TRUE>>=
 rownames(females) <- 1:NROW(females)
-females[c(1:2, 101:103, 202:204, 303:305, 404), 1:2]
+females[c(1:2, 101:103, 202:204, 303:305, 404), c(1:2, 4:5)]
 @ 
 <<anda>>=
 females$age <- rep(0:100, times = 4)
@@ -650,16 +650,30 @@ abline(h = 0)
 \begin{frame}[fragile]{Age-specific mortality by sex, 60--99}
 \scriptsize  
 <<morbysex4,fig.height=5,echo=FALSE>>=
-plot(60:99, both$risk[both$sex == "man" & both$age <= 99 & both$age >= 60], 
+man = both$risk[both$sex == "man" & both$age <= 99 & both$age >= 60]
+plot(60:99, man, 
      type = "s", col = "blue", ylim = c(0, 0.5),
      ylab = "Age-specific mortality", xlab = "Age")
-lines(60:99, both$risk[both$sex == "woman" & both$age <= 99 & both$age >= 60], 
+woman = both$risk[both$sex == "woman" & both$age <= 99 & both$age >= 60]
+lines(60:99, woman, 
       type = "s", col = "red")
 abline(h = 0)
 @ 
 
 \end{frame}
 
+\begin{frame}[fragile]{Age-specific mortality by sex, 60--99, log scale}
+\scriptsize  
+<<morbysex4log,fig.height=5,echo=FALSE>>=
+plot(60:99, log(man), 
+     type = "s", col = "blue",
+     ylab = "Age-specific mortality", xlab = "Age")
+lines(60:99, log(woman), 
+      type = "s", col = "red")
+abline(h = 0)
+@ 
+
+\end{frame}
 
 \begin{frame}[fragile]{The life table, women}
 \scriptsize
