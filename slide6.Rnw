@@ -26,7 +26,7 @@
  <<include=FALSE>>=
 library(knitr)
 opts_chunk$set(
-fig.path='figs/', fig.height = 5,cache=TRUE,cache.path="cache8/"
+fig.path='figs/', fig.height = 4,cache=TRUE,cache.path="cache8/"
 )
 @
 
@@ -442,102 +442,77 @@ P(T > t) = P(\text{infertile}) + P(\text{fertile}) P(T > t \mid
 
 \end{frame}
 
-\end{document}
 
-\begin{frame}{The piecewise constant hazards (pch) model}
 
-The pch distribution is flexible because you can add as many parameters as
-you want. We will try it on the birth interval data. We start off with just
-four intervals, and the non-censored data set.
+\begin{frame}[fragile]{The piecewise constant hazards (pch) model}
+
 <<pch6fert>>=
 fit.pch <- phreg(Surv(next.ivl, event) ~ age + year + ses,
                  data = f12, dist = "pch", cuts = c(4, 8, 12))
-fit.c <- coxreg(Surv(next.ivl, event) ~ age + year + ses,
+fit.c <- coxreg(Surv(next.ivl, event) ~ age + year + ses, 
                 data = f12)
 fit.pch
 @
-Then we check the fit in Figure~\ref{fig:pchcheck6}.
-\begin{figure}[ht!]
+
+\end{frame}
+
+\begin{frame}[fragile]{Graphical check of the fit}
+
 <<drycomppchcens>>=
 check.dist(fit.c, fit.pch)
 @
-\caption{Check of the \emp{pch} model, uncensored birth intervals.}
-\label{fig:pchcheck6}
-\end{figure}
-This is not good enough. We need shorter intervals close to zero, so
-<<pchfert2>>=
+
+This is not good enough.
+\end{frame}
+
+\begin{frame}[fragile]{Tighter cuts}
+ 
+ <<pchfert2>>=
 fit.pch <- phreg(Surv(next.ivl, event) ~ age + year + ses,
                  data = f12, dist = "pch", cuts = 1:13)
 fit.pch
 @
 This gives us 14 intervals with constant baseline hazard, i.e., 14
-parameters to estimate only for the baseline hazard function! But the fit
-is good, see Figure~\ref{fig:pch13check6}. In fact, it is almost perfect!
-\begin{figure}[ht!]
+parameters extra.
+\end{frame}
+
+\begin{frame}[fragile]{The graph}
 <<drycomppch13cens>>=
 check.dist(fit.c, fit.pch)
 @
-\caption[Check of the \emp{pch} model with 13 constant hazard intervals]{Check of the \emp{pch} model with thirteen constant hazard intervals,
-  uncensored birth intervals.}
-\label{fig:pch13check6}
-\end{figure}
 
-One of the advantages with parametric models is that it is easy to study
-and plot the hazard function, and not only the cumulative hazards function,
-which is the dominant tool for (graphical) analysis in the case of the
-nonparametric model of Cox regression\index{Cox regression}. For the
-piecewise constant model
-just fitted we get the estimated hazard function in Figure~\ref{fig:pchhaz6}.
-\begin{figure}[ht!]
+\end{frame}
+
+\begin{frame}[fragile]{Plotting the hazard function}
+
 <<pchhaz6>>=
-plot(fit.pch, fn = "haz")
+plot(fit.pch, fn = "haz", main = "")
 @
-\caption[Estimated hazard function for birth intervals,
-  \emp{pch}]{The estimated hazard function for the length of birth intervals,
-  piecewise constant hazards distribution.}
-\label{fig:pchhaz6}
-\end{figure}
-The peak is reached during the third year of waiting, and after that the
-intensity of giving birth drops fast, and it becomes zero after 12 years.
 
-What are the implications for the estimates of the regression parameters of
-the different choices of parametric model? Let us compare the regression
-parameter estimates only for the three distributional assumptions, \emp{Weibull},
-\emp{lognormal}, and \emp{pch}. See Table~\ref{tab:threecomp6}
-\begin{table}[ht!]
+\end{frame}
+
+\begin{frame}[fragile]{Sensitivity of regression parameter estimates}
+
 <<threecomp6,echo=FALSE>>=
 ##require(xtable)
 ##fit.c$coef
 ##fit.w$coef
 ##fit.lognorm$coef
 ##fit.pch$coef
-ta <- cbind(fit.c$coef[1:5], fit.pch$coef[1:5], fit.w$coef[1:5], fit.lognorm$coef[1:5])
-colnames(ta) <- c("Cox", "Pch", "Weibull", "Lognormal")
+ta <- cbind(fit.c$coef[1:5], fit.pch$coef[1:5], fit.lognorm$coef[2:6], fit.w$coef[1:5])
+colnames(ta) <- c("Cox", "Pch", "Lognormal", "Weibull")
 ta <- round(exp(ta), digits = 3)
 print(ta)
 @
-\caption[Distribution assumptions for the birth intervals
-  data]{Parameter estimates under different distribution assumptions for
-    the birth intervals data.}
-\label{tab:threecomp6}
-\end{table}
-We can see that the differences are not large. However, the two assumptions
-closest to the ``truth'', the Cox model and the Pch model, are very close,
-while the other two have larger deviations. So an appropriate choice of
-parametric model seems to be somewhat important, contrary to ``common
-knowledge'', which says that it is not so important to have a good fit of
-the baseline hazard, if the only interest lies in the regression parameters.
+\begin{itemize}
+\item The differences are \emp{not large}. 
+\item The \emp{Cox} and the \emp{Pch} models are very \emp{close}.
+\end{itemize}
+\end{frame}
 
-\subsubsection{Testing the proportionality assumption with the Pch model}
-
-One advantage with the piecewise constant hazards model is that it is easy
-to test
-the assumption of proportional hazards. But it cannot be done directly with
-the {\tt phreg} function. There is, however, a simple alternative. Before
-we show how to do it, we must show how to utilize Poisson regression when
-analyzing the pch model. We do it by reanalyzing the birth intervals data.
-
-First, the data set is split up after the {\tt cuts} in {\tt strata}. This
+\begin{frame}[fragile]{The proportionality assumption with the Pch model}
+\scriptsize
+ The data set is split up after the {\tt cuts} in {\tt strata}. This
 is done with the aid of the {\tt survSplit} function in the {\tt survival}
 package.
 <<splitsurv6>>=
@@ -548,26 +523,28 @@ f12.split <- survSplit(f12, cut = 1:13, start = "enter",
                        episode = "ivl")
 head(f12.split)
 @
+\end{frame}
+
+\begin{frame}[fragile]{Sort the result}
+  
+\scriptsize
 To see better what happened, we {\tt sort} the new data frame by {\tt id}
 and {\tt enter}.
 <<sortt>>=
 f12.split <- f12.split[order(f12.split$id, f12.split$enter), ]
 head(f12.split)
 @
-We see that a new variable, {\tt ivl}, is created. It tells us which
+\begin{itemize}
+\item A a new variable, {\tt ivl}, is created. It tells us which
 interval we are looking at. You may notice that the variables {\tt enter}
 and {\tt ivl} happens to be equal here; it is because our intervals start
-by 0, 1, 2, \ldots, 13, as given by {\tt cuts} above.
+by 0, 1, 2, \ldots, 13.
+\item Interval lengths are {\tt next.ivl - enter}.
+\end{itemize}
+\end{frame}
 
-In the Poisson regression to follow, we model the probability that {\tt
-  event = 1}. This probability will depend on the length of the studied
-interval, here {\tt next.ivl - enter}, which for our data mostly equals one.
-The exact value we need is the logarithm of this difference, and it will be
-entered as an {\tt offset}\index{offset} in the model.
-
-Finally, one parameter per interval is needed, corresponding to the
-piecewise constant hazards. This is accomplished by including {\tt ivl} as
-a {\tt factor} in the model. Thus we get
+\begin{frame}[fragile]{Adjusting the data frame for Poisson regression}
+\scriptsize  
 <<poispch6>>=
 f12.split$offs <- log(f12.split$next.ivl - f12.split$enter)
 f12.split$ivl <- as.factor(f12.split$ivl)
@@ -576,144 +553,148 @@ fit12.pn <- glm(event ~ offset(offs) +
                 family = "poisson", data = f12.split)
 drop1(fit12.pn, test = "Chisq")
 @
-The piecewise cutting ({\tt ivl}) is very statistically significant, but
-some caution with the interpretation is recommended: The cut generated 13
-parameters, and there may
-be too few events in some intervals. This easily checked with the function
-{\tt tapply}\index{Functions!\fun{tapply}}, which is very handy for doing calculations on
-subsets of the data frame. In this case we want to sum the number of {\tt
-  event}s in each {\tt ivl}:
-<<sumivl6>>=
+
+\end{frame}
+
+\begin{frame}[fragile]{Interaction with age}
+
 tapply(f12.split$event, f12.split$ivl, sum)
 @
 A reasonable interpretation of this is to restrict attention to the 10
 first years; only one birth occurs after a longer waiting time. Then it
 would be reasonable to collapse the intervals in $(7, 10]$ to one
 interval. Thus
+\end{frame}
+
+\begin{frame}[fragile]{Collapse late intervals}
 <<collapsebir6>>=
 fc <- age.window(f12.split, c(0, 11),
                  surv = c("enter", "next.ivl", "event"))
 levels(fc$ivl) <- c(0:6, rep("7-11", 7))
 tapply(fc$event, fc$ivl, sum)
 @
-Note two things here. First the use of the function {\tt
-  age.window}\index{Functions!\fun{age.window}}, second the {\tt levels} function. The
-first makes an ``age cut'' in the Lexis diagram, i.e., all spells are
-censored at (exact) age 11. The second is more intricate; factors can be
-tricky to handle. The problem here is that after {\tt age.window}, the new
-data frame contains only individuals with values {\tt 0, 1, \ldots, 11} on
-the factor variable {\tt ivl}, but it is still \emp{defined} as a factor
-with 14 levels. The call to {\tt levels} collapses the last seven to ``{\tt 7-11}''.
 
-Now we rerun the analysis with the new data frame.
-%\begin{table}
-%\tabletitle{Yup}
-%\label{tab:}
+\end{frame}
+
+\begin{frame}[fragile]{Rerun}
+  
+\scriptsize  
 <<rerun0pch6>>=
 fit <- glm(event ~  offset(offs) + age + year + ses + ivl,
            family = "poisson", data = fc)
 drop1(fit, test = "Chisq")
 @
-%\end{table}
+
 This change in categorization does not change the general conclusions about
 statistical significance at all.
+\end{frame}
 
-Now let us include interactions with {\tt ivl} in the model.
+\begin{frame}[fragile]{The interactions}
+\scriptsize
 <<rerunpch6>>=
 fit.ia <- glm(event ~  offset(offs) + (age + year + ses) * ivl,
               family = "poisson", data = fc)
 drop1(fit.ia, test = "Chisq")
 @
-There is an apparent interaction with {\tt age}, which is not very
-surprising; younger mothers will have a longer fertility period ahead than
-old mothers. The other interactions do not seem to be very important, so we
-remove them and rerun the model once again.
-<<rerun2pch6>>=
-fit.ia <- glm(event ~  offset(offs) + year + ses + age * ivl,
-              family = "poisson", data = fc)
-drop1(fit.ia, test = "Chisq")
-@
-Let us look at the parameter estimates.
-<<rer6>>=
-summary(fit.ia)
-@
-We can see (admittedly not clearly) a tendency of decreasing intensity in
-the later intervals with higher age.
 
-This can actually also be done with {\tt phreg} and the \emp{Weibull} model and
-fixed {\tt shape} at one (i.e., an \emp{exponential} model).
-<<rer0exp6>>=
-fit.exp <- phreg(Surv(enter, next.ivl, event) ~  year + ses +
-                 age * ivl, dist = "weibull", shape = 1,
-                 data = fc)
-drop1(fit.exp, test = "Chisq")
-@
-The parameter estimates are now presented like this.
-<<rerexp6>>=
-fit.exp
-@
-A lot of information, but the same content as in the output from the
-Poisson regression. However, here we get the exponentiated parameter
-estimates, in the column ``\emp{Exp(Coef)}''. These numbers are \emp{risk
-    ratios} (or relative risks), and easier to interpret.
+\end{frame}
 
-What should be done with the interactions? The simplest way to go to get an
-easy-to-interpret result is to categorize {\tt age} and make separate
-analyzes, one for each category
-of {\tt age}. Let us do that; first we have to decide on how to
-categorize: there should not be too many categories, and not too few
-mothers (or births) in any category. As a starting point, take three
-categories by cutting {\tt age} at (exact) ages 25 and 30:
-<<cutage6>>=
-fc$agegrp <- cut(fc$age, c(0, 25, 30, 100),
-                 labels = c("< 25", "25-30", ">= 30"))
-table(fc$agegrp)
-@
-Note the use of the function {\tt cut}. It "cuts" a continuous variable
-into pieces, defined by the second argument. Note that we must give lower
-and upper bounds; I chose 0 and 100, respectively. They are of course not
-near real ages, but I am sure that no value falls outside the interval $(0,
-100)$, and that is the important thing here. Then I can (optionally) give
-names to each category with the argument {\tt labels}.
+%%\end{document}
 
-The tabulation shows that the oldest category contains relatively few
-mothers. Adding to that, the oldest category will probably also have fewer
-births. We can check that with the aid of the function {\tt tapply}.
-<<tappcut6>>=
-tapply(fc$event, fc$agegrp, sum)
-@
-Now, rerun the last analysis for each {\tt agegrp} separately. For
-illustration only, we show how to do it for the first age group:
+%% There is an apparent interaction with {\tt age}, which is not very
+%% surprising; younger mothers will have a longer fertility period ahead than
+%% old mothers. The other interactions do not seem to be very important, so we
+%% remove them and rerun the model once again.
+%% <<rerun2pch6>>=
+%% fit.ia <- glm(event ~  offset(offs) + year + ses + age * ivl,
+%%               family = "poisson", data = fc)
+%% drop1(fit.ia, test = "Chisq")
+%% @
+%% Let us look at the parameter estimates.
+%% <<rer6>>=
+%% summary(fit.ia)
+%% @
+%% We can see (admittedly not clearly) a tendency of decreasing intensity in
+%% the later intervals with higher age.
 
-<<grpbir16>>=
-fit.ses1 <- phreg(Surv(enter, next.ivl, event) ~  year + ses + ivl,
-dist = "weibull", shape = 1, data = fc[fc$agegrp == "< 25", ])
-fit.ses1
-@
-You may try to repeat this for all age groups and check if the regression
-parameters for {\tt year} and {\tt ses} are very different. Hint: They are not.
+%This can actually also be done with {\tt phreg} and the \emp{Weibull} model and
+%fixed {\tt shape} at one (i.e., an \emp{exponential} model).
 
-\subsection{Choosing the best parametric model}
-%\end{quote}
+%% \begin{frame}[fragile]{Do it with the phreg function}
+%% \scriptsize
+%% <<rer0exp6>>=
+%% fit.exp <- phreg(Surv(enter, next.ivl, event) ~  year + ses +
+%%                  age + ivl, dist = "weibull", shape = 1, data = fc)
+%% drop1(fit.exp, test = "Chisq")
+%% @
+%% The parameter estimates are now presented like this.
+%% <<rerexp6>>=
+%% fit.exp
+%% @
 
-%\subsection{Parametric proportional hazards in \R}
+%% \end{frame}
+
+%% \end{document}
+%% A lot of information, but the same content as in the output from the
+%% Poisson regression. However, here we get the exponentiated parameter
+%% estimates, in the column ``\emp{Exp(Coef)}''. These numbers are \emp{risk
+%%     ratios} (or relative risks), and easier to interpret.
+
+%% What should be done with the interactions? The simplest way to go to get an
+%% easy-to-interpret result is to categorize {\tt age} and make separate
+%% analyzes, one for each category
+%% of {\tt age}. Let us do that; first we have to decide on how to
+%% categorize: there should not be too many categories, and not too few
+%% mothers (or births) in any category. As a starting point, take three
+%% categories by cutting {\tt age} at (exact) ages 25 and 30:
+%% <<cutage6>>=
+%% fc$agegrp <- cut(fc$age, c(0, 25, 30, 100),
+%%                  labels = c("< 25", "25-30", ">= 30"))
+%% table(fc$agegrp)
+%% @
+%% Note the use of the function {\tt cut}. It "cuts" a continuous variable
+%% into pieces, defined by the second argument. Note that we must give lower
+%% and upper bounds; I chose 0 and 100, respectively. They are of course not
+%% near real ages, but I am sure that no value falls outside the interval $(0,
+%% 100)$, and that is the important thing here. Then I can (optionally) give
+%% names to each category with the argument {\tt labels}.
+
+%% The tabulation shows that the oldest category contains relatively few
+%% mothers. Adding to that, the oldest category will probably also have fewer
+%% births. We can check that with the aid of the function {\tt tapply}.
+%% <<tappcut6>>=
+%% tapply(fc$event, fc$agegrp, sum)
+%% @
+%% Now, rerun the last analysis for each {\tt agegrp} separately. For
+%% illustration only, we show how to do it for the first age group:
+
+%% <<grpbir16>>=
+%% fit.ses1 <- phreg(Surv(enter, next.ivl, event) ~  year + ses + ivl,
+%% dist = "weibull", shape = 1, data = fc[fc$agegrp == "< 25", ])
+%% fit.ses1
+%% @
+%% You may try to repeat this for all age groups and check if the regression
+%% parameters for {\tt year} and {\tt ses} are very different. Hint: They are not.
+
+\begin{frame}[fragile]{Choosing the best parametric model}
 
 For modeling survival data with parametric proportional hazards models,
 the distributions of the function {\tt phreg} in the package {\tt eha} are
 available. How to select a suitable parametric model is shown by a couple
 of examples.
 
+\end{frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-\begin{frame}{Old age mortality}
+%% \begin{frame}{Old age mortality}
 
-Survival data from the \emp{Sundsvall region}
+%% Survival data from the \emp{Sundsvall region}
 
-\includegraphics[height=3in]{figure/ddb.png}
-\includegraphics[height=2.5in]{figure/sullan.jpg}
+%% \includegraphics[height=3in]{figure/ddb.png}
+%% \includegraphics[height=2.5in]{figure/sullan.jpg}
 
-\end{frame}
+%% \end{frame}
 
 
 \begin{frame}[fragile]{Old age mortality}
@@ -749,6 +730,7 @@ str(oldmort)
 <<oldmort6.reg,results='asis'>>=
 om <- oldmort
 om$Y <- Surv(om$enter - 60, om$exit - 60, om$event)
+om$birthdate <- om$birthdate - 1830
 fit.w <- phreg(Y ~ birthdate + sex + civ + ses.50 +
                    birthplace + imr.birth + region , data = om)
 dr = drop1(fit.w, test = "Chisq")
@@ -756,8 +738,6 @@ xtable(dr)
 @
 
 \end{frame}
-
-\end{document}
 
 
 
@@ -805,24 +785,23 @@ xtable(dr4)
 \begin{frame}[fragile]{Tests of proportionality, cumulative hazards}
 
 <<grtest, fig.height = 5, echo = FALSE>>=
-par(mfrow = c(2, 2))
+oldpar <- par(mfrow = c(2, 2))
 fit.sex <- phreg(Y ~ birthdate + strata(sex) + civ +
                     region , data = om)
 plot(fit.sex, main = "sex", fn = "cum", col = 1:2)
 fit.civ <- phreg(Y ~ birthdate + sex + strata(civ) +
                     region , data = om)
-plot(fit.civ, main = "Civil status", fn = "cum", col = 1:4)
+plot(fit.civ, main = "Civil status", fn = "cum", col = c(1:2, 4))
 fit.reg <- phreg(Y ~ birthdate + sex + civ +
                     strata(region), data = om)
-plot(fit.reg, main = "Region", fn = "cum", col = 1:2)
+plot(fit.reg, main = "Region", fn = "cum", col = c(1:2, 4))
 fit.all <- phreg(Y ~ birthdate + sex + civ +
                     region , data = om)
 plot(fit.all, main = "All", fn = "cum")
+par(oldpar)
 @
 
 \end{frame}
-
-\end{document}
 
 \begin{frame}[fragile]{Graphical tests of proportionality, hazards}
 
@@ -833,10 +812,10 @@ fit.sex <- phreg(Y ~ birthdate + strata(sex) + civ +
 plot(fit.sex, main = "sex", fn = "haz", col = 1:2)
 fit.civ <- phreg(Y ~ birthdate + sex + strata(civ) +
                     region , data = om)
-plot(fit.civ, main = "Civil status", fn = "haz", col = 1:4)
+plot(fit.civ, main = "Civil status", fn = "haz", col = c(1:2, 4))
 fit.reg <- phreg(Y ~ birthdate + sex + civ +
                     strata(region), data = om)
-plot(fit.reg, main = "Region", fn = "haz", col = 1:2)
+plot(fit.reg, main = "Region", fn = "haz", col = c(1:2, 4))
 fit.all <- phreg(Y ~ birthdate + sex + civ +
                     region , data = om)
 plot(fit.all, main = "All", fn = "haz")
@@ -873,9 +852,8 @@ check.dist(fit.allc, fit.all)
 @
 \end{frame}
 
-Here we applied a \emp{\emp{Weibull}} baseline distribution (the {\tt default}
-distribution in {\tt phreg}; by specifying nothing, the \emp{Weibull} is chosen).
-Now let us repeat this with all the distributions in the {\tt phreg} package.
+\begin{frame}[fragile]{Other distributions}
+\scriptsize
 <<allreg6>>=
 ln <- phreg(Y ~ sex + civ + birthplace, data = om,
             dist = "lognormal")
@@ -894,154 +872,144 @@ xx <- c(fit.w$loglik[2], ln$loglik[2], ll$loglik[2],
 names(xx) <- c("w", "ln", "ll", "g", "ev")
 xx
 @
+\end{frame}
+
+\begin{frame}[fragile]{Check the Gompertz distribution}
+\scriptsize  
 The \emp{Gompertz} (g) distribution gives the largest value of the
-maximized log likelihood. Let us graphically inspect the fit, see
-Figure~\ref{fig:grafi6}.
-\begin{figure}[ht!]
+maximized log likelihood.
+
 <<grainsp6>>=
 fit.c <- coxreg(Y ~ sex + civ + birthplace, data = om)
-check.dist(fit.c, g)
+check.dist(fit.c, g, col = c("blue", "red"))
+abline(h = 0)
 @
-\caption[Check of a \emp{Gompertz} fit to old age mortality]{Graphical fit; \emp{Gompertz} baseline versus the nonparametric (Cox
-  regression\index{Cox regression}, dashed).}
-\label{fig:grafi6}
-\end{figure}
-The fit is obviously great during the first 30 years (ages 60--90), but
-fails somewhat thereafter. One explanation to ``the failure'' is that after age
-90, not so
-many persons are still at risk (alive); another is that maybe the mortality
-levels off at very high ages (on a very high level, of course).
+\end{frame}
 
-The \emp{Gompertz} hazard function is shown in Figure~\ref{fig:olmgom6}.
-\begin{figure}[ht!]
+\begin{frame}[fragile]{The Gompertz hazard function}
 <<gomphaz6>>=
-plot(g, fn = "haz")
+plot(g, fn = "haz", col = "blue")
+abline(h = 0)
 @
-\caption[Estimated \emp{Gompertz} hazard function for old age mortality]{Estimated \emp{Gompertz} hazard function for old age mortality data.}
-\label{fig:olmgom6}
-\end{figure}
-It is an exponentially increasing function of time; the Gompertz model
-usually fits old age mortality very well.
+\end{frame}
 
-The $p$-values measure the significance of a group compared to the
-reference category, but we would also like to have an overall $p$-value for
-the covariates (factors) as such, i.e., answer the question ``does
-birthplace matter?''. This can be achieved by running an analysis without
-{\tt birthplace}:
-<<without6>>=
-fit.w1 <- phreg(Y ~ sex + civ, data = om)
-fit.w1
-@
-%\end{quote}
-Then we compare the \emp{max log likelihoods}:
-\Sexpr{round(fit.w$loglik[2], digits = 3)} and
-\Sexpr{round(fit.w1$loglik[2], digits = 3)}, respectively. The test
-statistic is 2 times the difference,
-\Sexpr{round(2 * (fit.w$loglik[2] - fit.w1$loglik[2]), digits = 3)}.
-Under the null hypothesis of no {\tt birthplace} effect on mortality,
-this test statistic has an approximate
-$\chi^2$ distribution with 2 degrees of freedom. The degrees of freedom is
-the number of omitted parameters in the reduced model, two in this
-case. This because the factor {\tt birthplace} has three levels.
+%% \end{document}
 
-There is a much simpler way of doing this, and that is to use the function {\tt
-  drop1}. As its name may suggest, it drops one variable at a time and
-reruns the fit, calculating the max log likelihoods and differences as above.
-<<drop6>>=
-drop1(fit.w, test = "Chisq")
-@
-As you can see, we do not only recover the test statistic for {\tt
-  birthplace}, we get the corresponding tests for all the involved
-covariates. Thus, it is obvious that both {\tt sex} and {\tt civ} have a
-statistically very significant  effect on old age mortality, while {\tt
-  birthplace} does not mean much. Note that these effects are measured in
-the presence of the other two variables.
+%% The $p$-values measure the significance of a group compared to the
+%% reference category, but we would also like to have an overall $p$-value for
+%% the covariates (factors) as such, i.e., answer the question ``does
+%% birthplace matter?''. This can be achieved by running an analysis without
+%% {\tt birthplace}:
+%% <<without6>>=
+%% fit.w1 <- phreg(Y ~ sex + civ, data = om)
+%% fit.w1
+%% @
+%% %\end{quote}
+%% Then we compare the \emp{max log likelihoods}:
+%% \Sexpr{round(fit.w$loglik[2], digits = 3)} and
+%% \Sexpr{round(fit.w1$loglik[2], digits = 3)}, respectively. The test
+%% statistic is 2 times the difference,
+%% \Sexpr{round(2 * (fit.w$loglik[2] - fit.w1$loglik[2]), digits = 3)}.
+%% Under the null hypothesis of no {\tt birthplace} effect on mortality,
+%% this test statistic has an approximate
+%% $\chi^2$ distribution with 2 degrees of freedom. The degrees of freedom is
+%% the number of omitted parameters in the reduced model, two in this
+%% case. This because the factor {\tt birthplace} has three levels.
 
-We can plot the baseline distribution by
-<<plotno6>>=
-plot(fit.w)
-@
-with the result shown in Figure~\ref{fig:6weibas}.
-\begin{figure}[ht!]
-<<6weibas,echo=FALSE>>=
-plot(fit.w)
-@
-\caption[Distribution of remaining life at 60, \emp{Weibull} model]{Baseline distribution of remaining life at 60 for an ``average''
-  person. \emp{Weibull} model.}
-\label{fig:6weibas}
-\end{figure}
-We can see one advantage with parametric models here: They make it
-possible to estimate the hazard and density functions. This is much
-trickier with a semi-parametric model like the Cox proportional hazards
-model. Another question is, of course, how well the \emp{Weibull} model fits the
-data. One way to graphically check this is to fit a Cox
-regression\index{Cox regression} model
-and compare the two cumulative hazards plots. This is done by using the
-function {\tt check.dist}:\index{cumulative hazard function}
-<<chekwei6>>=
-fit <- coxreg(Y ~ sex + civ + birthplace, data = om)
-check.dist(fit, fit.w)
-@
-The result is shown in Figure~\ref{fig:6chekwei}.
-\begin{figure}[ht!]
-<<cw6fig,echo=FALSE>>=
-check.dist(fit, fit.w)
-@
-\caption[Check of a \emp{Weibull} fit to old age mortality]{Check of a \emp{Weibull} fit. The solid line is the cumulative hazards
-  function from the \emp{Weibull} fit, and the dashed line is the fit from a Cox
-  regression\index{Cox regression}.}
-\label{fig:6chekwei}
-\end{figure}
-Obviously, the fit is not good; the \emp{Weibull} model cannot capture the fast
-rise of the hazard by age. An exponentially increasing hazard function may
-be needed, so let us
-try the \emp{Gompertz} distribution:
-<<gomp6>>=
-fit.g <- phreg(Y ~ sex + civ + birthplace, data = om,
-               dist = "gompertz")
-fit.g
-@
-One sign of a much better fit is the larger value of the maximized log
-likelihood, \Sexpr{round(fit.g$loglik[2], digits = 3)} versus
-\Sexpr{round(fit.w$loglik[2], digits = 3)} for the \emp{Weibull} fit.
-  The comparison to the Cox regression\index{Cox regression} fit is given by
-<<chekgom6>>=
-check.dist(fit, fit.g)
-@
-with the result shown in Figure~\ref{fig:6chekgom}.
-\begin{figure}[ht!]
-<<cg6fig,echo=FALSE>>=
-check.dist(fit, fit.g)
-@
-\caption[Check of a \emp{Gompertz} fit to old age mortality]{Check of a
-  \emp{Gompertz} fit. The solid line is the cumulative hazards
-  function from the \emp{Gompertz} fit, and the dashed line is the fit from a Cox
-  regression\index{Cox regression}.}
-\label{fig:6chekgom}
-\end{figure}
-This is a much better fit. The deviation that starts above 30
-(corresponding to the age 90) is no big issue; in that range few people are
-still alive and the random variation takes over. Generally, it seems as if
-the \emp{Gompertz} distribution fits old age mortality well.
+%% There is a much simpler way of doing this, and that is to use the function {\tt
+%%   drop1}. As its name may suggest, it drops one variable at a time and
+%% reruns the fit, calculating the max log likelihoods and differences as above.
+%% <<drop6>>=
+%% drop1(fit.w, test = "Chisq")
+%% @
+%% As you can see, we do not only recover the test statistic for {\tt
+%%   birthplace}, we get the corresponding tests for all the involved
+%% covariates. Thus, it is obvious that both {\tt sex} and {\tt civ} have a
+%% statistically very significant  effect on old age mortality, while {\tt
+%%   birthplace} does not mean much. Note that these effects are measured in
+%% the presence of the other two variables.
 
-The plots of the baseline \emp{Gompertz} distribution is shown in Figure~\ref{fig:6gombas}.
-\begin{figure}[ht!]
-<<6gombas,echo=FALSE,fig.height=6>>=
-plot(fit.g)
-@
-\caption[Distribution of remaining life at 60, \emp{Gompertz} model]{Baseline distribution of remaining life at 60 for an ``average''
-  person. \emp{Gompertz} model.}
-\label{fig:6gombas}
-\end{figure}
-Compare to the corresponding fit to the \emp{Weibull} model, Figure~\ref{fig:6weibas}.
+%% We can plot the baseline distribution by
+%% <<plotno6>>=
+%% plot(fit.w)
+%% @
+%% with the result shown in Figure~\ref{fig:6weibas}.
+%% \begin{figure}[ht!]
+%% <<6weibas,echo=FALSE>>=
+%% plot(fit.w)
+%% @
+%% \caption[Distribution of remaining life at 60, \emp{Weibull} model]{Baseline distribution of remaining life at 60 for an ``average''
+%%   person. \emp{Weibull} model.}
+%% \label{fig:6weibas}
+%% \end{figure}
+%% We can see one advantage with parametric models here: They make it
+%% possible to estimate the hazard and density functions. This is much
+%% trickier with a semi-parametric model like the Cox proportional hazards
+%% model. Another question is, of course, how well the \emp{Weibull} model fits the
+%% data. One way to graphically check this is to fit a Cox
+%% regression\index{Cox regression} model
+%% and compare the two cumulative hazards plots. This is done by using the
+%% function {\tt check.dist}:\index{cumulative hazard function}
+%% <<chekwei6>>=
+%% fit <- coxreg(Y ~ sex + civ + birthplace, data = om)
+%% check.dist(fit, fit.w)
+%% @
+%% The result is shown in Figure~\ref{fig:6chekwei}.
+%% \begin{figure}[ht!]
+%% <<cw6fig,echo=FALSE>>=
+%% check.dist(fit, fit.w)
+%% @
+%% \caption[Check of a \emp{Weibull} fit to old age mortality]{Check of a \emp{Weibull} fit. The solid line is the cumulative hazards
+%%   function from the \emp{Weibull} fit, and the dashed line is the fit from a Cox
+%%   regression\index{Cox regression}.}
+%% \label{fig:6chekwei}
+%% \end{figure}
+%% Obviously, the fit is not good; the \emp{Weibull} model cannot capture the fast
+%% rise of the hazard by age. An exponentially increasing hazard function may
+%% be needed, so let us
+%% try the \emp{Gompertz} distribution:
+%% <<gomp6>>=
+%% fit.g <- phreg(Y ~ sex + civ + birthplace, data = om,
+%%                dist = "gompertz")
+%% fit.g
+%% @
+%% One sign of a much better fit is the larger value of the maximized log
+%% likelihood, \Sexpr{round(fit.g$loglik[2], digits = 3)} versus
+%% \Sexpr{round(fit.w$loglik[2], digits = 3)} for the \emp{Weibull} fit.
+%%   The comparison to the Cox regression\index{Cox regression} fit is given by
+%% <<chekgom6>>=
+%% check.dist(fit, fit.g)
+%% @
+%% with the result shown in Figure~\ref{fig:6chekgom}.
+%% \begin{figure}[ht!]
+%% <<cg6fig,echo=FALSE>>=
+%% check.dist(fit, fit.g)
+%% @
+%% \caption[Check of a \emp{Gompertz} fit to old age mortality]{Check of a
+%%   \emp{Gompertz} fit. The solid line is the cumulative hazards
+%%   function from the \emp{Gompertz} fit, and the dashed line is the fit from a Cox
+%%   regression\index{Cox regression}.}
+%% \label{fig:6chekgom}
+%% \end{figure}
+%% This is a much better fit. The deviation that starts above 30
+%% (corresponding to the age 90) is no big issue; in that range few people are
+%% still alive and the random variation takes over. Generally, it seems as if
+%% the \emp{Gompertz} distribution fits old age mortality well.
 
+%% The plots of the baseline \emp{Gompertz} distribution is shown in Figure~\ref{fig:6gombas}.
+%% \begin{figure}[ht!]
+%% <<6gombas,echo=FALSE,fig.height=6>>=
+%% plot(fit.g)
+%% @
+%% \caption[Distribution of remaining life at 60, \emp{Gompertz} model]{Baseline distribution of remaining life at 60 for an ``average''
+%%   person. \emp{Gompertz} model.}
+%% \label{fig:6gombas}
+%% \end{figure}
+%% Compare to the corresponding fit to the \emp{Weibull} model, Figure~\ref{fig:6weibas}.
 
 
-\section{Accelerated failure time models}
 
-The accelerated failure time (AFT) model is best described through relations
-between survivor functions. For instance,
-comparing two groups:
+\begin{frame}{Accelerated Failure Time (AFT) models}
 
 \begin{description}
   \item[Group 0:] $P(T \ge t) = S_0(t)$  (control group)
@@ -1051,11 +1019,10 @@ The model says that treatment \emp{accelerates} failure time by the factor $\phi
 If $\phi < 1$, treatment is good (prolongs life), otherwise bad.
 Another interpretation is that the \emp{median} life length is \emp{
   multiplied by $1/\phi$} by treatment.
+\end{frame}
 
-In Figure~\ref{fig:6aftph} the difference between the accelerated failure
-time  and the
-proportional hazards models concerning the hazard functions is illustrated.
-\begin{figure}[ht!]
+\begin{frame}[fragile]{AFT vs.\ PH hazard functions}
+  
 <<aftph6,echo=FALSE>>=
 x <- seq(0, 3, length = 1000)
 par(mfrow = c(1, 2))
@@ -1064,16 +1031,16 @@ lines(x, hllogis(x, shape = 5), lty = 2)
 plot(x, 2 * hllogis(2 * x, shape = 5), type = "l", ylab = "", main = "AFT", xlab = "Time")
 lines(x, hllogis(x, shape = 5), lty = 2)
 @
-\caption[Proportional hazards and accelerated failure time models]{Proportional hazards (left) and accelerated failure time model
-  (right). The baseline distribution is Loglogistic with shape 5 (dashed).}
-\label{fig:6aftph}
-\end{figure}
-The AFT hazard is not only multiplied by 2, it is also shifted to the left;
-the process is accelerated. Note how the hazards in the AFT case converges
-as time increases. This is usually a sign of the suitability of an AFT model.
 
-\subsection{The AFT regression model}
-\index{model!parametric!AFT|(}
+The AFT hazard is not only multiplied by 2, it is also shifted to the left;
+the process is \emp{accelerated}. Note how the hazards in the AFT case
+\emp{converges} 
+as time increases. 
+
+\end{frame}
+
+\begin{frame}{The AFT regression model}
+
 If $T$ has survivor function $S(t)$ and $T_c = T/c$,  then $T_c$ has
 survivor function $S(ct)$.
 Then, if $Y = \log(T)$ and $Y_c = \log(T_c)$, the
@@ -1086,6 +1053,12 @@ familiar form:
 \begin{equation*}
 Y = \bbeta \bx + \epsilon,
 \end{equation*}
+
+\emp{linear  regression}!
+
+\emp{Complication:} Right censoring and left truncation!
+\end{frame}
+\end{document}
 i.e., an ordinary linear regression model for the log survival times. In
 the absence of right censoring and left truncation, this model can be
 estimated by least squares. However, the presence of these forms of
@@ -1186,6 +1159,10 @@ Exactly the same procedure as with the \emp{Weibull} distrbution, but we have to
 specify the \emp{Gompertz} distribution in the call (remember, the \emp{Weibull}
 distribution is the default choice, both for {\tt phreg} and {\tt aftreg}).
 <<oldln6.aft>>=
+fit.g <- phreg(Y ~ sex + civ + birthplace, data = om,
+               dist = "gompertz")
+fit.g
+
 fit.g1 <- aftreg(Y ~ sex + civ + birthplace, data = om,
                  dist = "gompertz")
 fit.g1

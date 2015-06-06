@@ -1,0 +1,64 @@
+---
+title: "Hauck-Donner"
+author: "Göran Broström"
+date: '2015-06-06'
+output: ioslides_presentation
+---
+
+## The Hauck-Donner effect, data
+
+```{r hdata, fig.height=4}
+dat = data.frame(T = 1:10, x = c(1:4, 5.02, 4.98, 7:10), event = rep(1, 10))
+dat = dat[order(dat$x), ]
+with(dat, plot(x, T, type = "b", col = "blue", lty = 2))
+```
+
+## Linear regression, code
+
+```{r code, results='hide'}
+options(show.signif.stars = FALSE)
+fit <- lm(T ~ x, data = dat)
+summary(fit)
+```
+
+## Linear regression, results
+
+```{r linres, echo=FALSE}
+summary(fit)
+```
+
+## LR test in linear regression
+
+```{r lrlin}
+drop1(fit, test = "F")
+```
+
+*Note* that the **F test** is appropriate for _linear models_ (with unknown variance).
+
+*Note* further that the **F** and **Wald** tests are equivalent!
+
+*Warning* for *missing values* (with drop1)!
+
+## ANOVA
+
+```{r anova}
+anova(fit)
+```
+
+## Cox regression
+
+```{r coxreg, message=FALSE}
+library(eha)
+fit = coxreg(Surv(T, event) ~ x, data = dat)
+fit
+```
+
+## Cox regression, drop1
+
+```{r drop1an}
+drop1(fit, test = "Chisq")
+```
+
+ *Note* the **Hauck-Donner** effect! 
+ 
+ Strikes in *non-linear* models (not only Cox)!
