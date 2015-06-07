@@ -407,11 +407,11 @@ This wasn't much better.
 
 \begin{frame}[fragile]{The lognormal model}
 \scriptsize
-<<trunc6f12cens.ln>>=
+<<trunc6f12cens.ln,results='asis'>>=
 fit.lnc <- phreg(Y ~ age + year + ses, data = f12.cens,
                  dist = "lognormal")
 dr <- drop1(fit.lnc, test = "Chisq")
-fit.lnc
+ltx(fit.lnc, dr = dr)
 @
 
 \end{frame}
@@ -445,13 +445,14 @@ P(T > t) = P(\text{infertile}) + P(\text{fertile}) P(T > t \mid
 
 
 \begin{frame}[fragile]{The piecewise constant hazards (pch) model}
-
-<<pch6fert>>=
+\scriptsize
+<<pch6fert, results='asis'>>=
 fit.pch <- phreg(Surv(next.ivl, event) ~ age + year + ses,
                  data = f12, dist = "pch", cuts = c(4, 8, 12))
 fit.c <- coxreg(Surv(next.ivl, event) ~ age + year + ses, 
                 data = f12)
-fit.pch
+dr = drop1(fit.pch, test = "Chisq")
+ltx(fit.pch, dr = dr)
 @
 
 \end{frame}
@@ -466,11 +467,12 @@ This is not good enough.
 \end{frame}
 
 \begin{frame}[fragile]{Tighter cuts}
- 
- <<pchfert2>>=
+\scriptsize
+ <<pchfert2,results='asis'>>=
 fit.pch <- phreg(Surv(next.ivl, event) ~ age + year + ses,
                  data = f12, dist = "pch", cuts = 1:13)
-fit.pch
+dr = drop1(fit.pch, test = 'Chisq')
+ltx(fit.pch, dr = dr)
 @
 This gives us 14 intervals with constant baseline hazard, i.e., 14
 parameters extra.
@@ -557,7 +559,7 @@ drop1(fit12.pn, test = "Chisq")
 \end{frame}
 
 \begin{frame}[fragile]{Interaction with age}
-
+<<intactage>>=
 tapply(f12.split$event, f12.split$ivl, sum)
 @
 A reasonable interpretation of this is to restrict attention to the 10
@@ -1039,6 +1041,23 @@ as time increases.
 
 \end{frame}
 
+\begin{frame}[fragile]{The AFT hazard function}
+  
+Survivor function:  
+\begin{equation*}
+S(t) = S_0(\phi t)
+\end{equation*}
+Density function:
+\begin{equation*}
+f(t) = \phi f_0(\phi t)
+\end{equation*}
+Hazard function:
+\begin{equation*}
+h(t) = \frac{f(t)}{S(t)} = \phi h_0(\phi t)
+\end{equation*}
+
+\end{frame}
+
 \begin{frame}{The AFT regression model}
 
 If $T$ has survivor function $S(t)$ and $T_c = T/c$,  then $T_c$ has
@@ -1058,164 +1077,215 @@ Y = \bbeta \bx + \epsilon,
 
 \emp{Complication:} Right censoring and left truncation!
 \end{frame}
-\end{document}
-i.e., an ordinary linear regression model for the log survival times. In
-the absence of right censoring and left truncation, this model can be
-estimated by least squares. However, the presence of these forms of
-incomplete data makes it necessary to rely on maximum likelihood
-methods. In \R, there is the functions {\tt aftreg} in the package {\tt
-  eha} and the function {\tt survreg} in the package {\tt survival} that
-perform the task of fitting AFT models.
 
-Besides differing parametrizations, the main difference between {\tt
-  aftreg} and {\tt survreg} is that the latter does not allow for left
-truncated data. One reason for this is that left truncation is a much
-harder problem to deal with in AFT models than in proportional hazards models.
+\begin{frame}[fragile]{AFT regression in R}
+  
+\begin{itemize}  
+\item \emp{\tt aftreg} in the package {\tt eha}:
+  \begin{itemize}
+    \item Handles \emp{left truncation}
+    \item Distributions: {\tt ``weibull''} (default), {\tt ``gompertz''},
+      {\tt ``ev''}, {\tt ``lognormal''}, and  {\tt ``loglogistic''}.
+   \end{itemize}   
+\item \emp{\tt survreg} in the package {\tt survival}.
+  \begin{itemize}
+    \item Can \emp{not} be used with left truncation
+      \item Can handle user-defined distributions in addition to built-in ones.
+   \end{itemize}
+\item \emp{Other} packages, see the \emp{CRAN Taskview}.   
+\end{itemize}   
 
-Here we describe the implementation in {\tt aftreg}. A detailed description
-of it can be found in Appendix~\ref{app:B}. The model is built around
-\emp{scale-shape} families of distributions:
-\begin{equation}\label{eq:6aftnull}
+\end{frame}
+
+\begin{frame}[fragile]{The {\tt aftreg} function}
+
+Built around \emp{scale-shape} families of distributions:
+\begin{equation*}
 S^\star\bigl\{t, (\lambda, p)\bigr\} = S_0\biggl\{\biggl(\frac{t}{\lambda}\biggr)^p\biggr\}, \quad t > 0; \;
 \lambda, p > 0,
-\end{equation}
-where $S_0$ is a fixed distribution. For instance, the exponential with
-parameter~1:
-\begin{equation*}
-S_0(t) = e^{-t}, \quad t > 0,
 \end{equation*}
-generates, through \eqref{eq:6aftnull}, the \emp{Weibull} family
-\eqref{eq:6weibull} of distributions.
+where $S_0$ is a fixed distribution. 
 
-%The allowance for left
-%truncation and time-varying covariates forces the consideration of the
-%extended model
+\end{frame}
 
+
+\begin{frame}[fragile]{Example: the Weibull family}
+   
+The \emp{exponential} with parameter 1:
+\emp{$S_0(t) = e^{-t}, \; t > 0$},
+generates the \emp{Weibull} family
+of distributions:
+
+\begin{equation*}
+S\bigl(t; (p, \lambda)\bigr) =
+\exp\biggl\{-\biggl(\frac{t}{\lambda}\biggr)^p\biggr\}, \; t > 0; \; p,
+\lambda > 0
+\end{equation*}  
+
+\end{frame}
+
+\begin{frame}[fragile]{The AFT regression model}
+  
 \newcommand{\tl}{\biggl(\frac{t\exp(\bbeta\bx)}{\lambda}\biggr)^p}
 
 With time-constant covariate vector $\bx$, the AFT model is
 
-\begin{equation}
-    S(t; (\lambda, p, \bbeta), \bx) = S^\star\bigl\{t\exp(\bbeta\bx),
-    (\lambda, p)\bigr\} =
+\begin{equation*}
+    S(t; (\lambda, p, \bbeta), \bx) = %%S^\star\bigl\{t\exp(\bbeta\bx),
+    %%(\lambda, p)\bigr\} =
     S_0\biggl\{\biggl(\frac{t\exp(\bbeta\bx)}{\lambda}\biggr)^p\biggr\},
   \quad t > 0,
-\end{equation}
+\end{equation*}
 and this leads to the following description of the hazard function:
 \begin{multline*}
-    h(t; (\lambda, p, \bbeta), \bx) = \exp(\bbeta\bx)
-    h^\star\bigl(t\exp(\bbeta\bx)\bigr) = \\
+    h(t; (\lambda, p, \bbeta), \bx) = \\ %%= \exp(\bbeta\bx)
+    %%h^\star\bigl(t\exp(\bbeta\bx)\bigr) = \\
     \exp(\bbeta\bx)\frac{p}{\lambda}
     \biggl(\frac{t\exp(\bbeta\bx)}{\lambda}\biggr)^{p-1}h_0\biggl\{\tl\biggr\},
     \quad t > 0,
 \end{multline*}
-where $\bx = (x_1, \ldots, x_p)$ is a vector of covariates, and
-$\bbeta = (\beta_1, \ldots, \beta_p)$ is the corresponding
-        vector of regression coefficients.
-\index{model!parametric!AFT|)}
+%where $\bx = (x_1, \ldots, x_p)$ is a vector of covariates, and
+%$\bbeta = (\beta_1, \ldots, \beta_p)$ is the corresponding
+ %       vector of regression coefficients.
 
-\subsection{Different parametrizations}
-\index{Functions!\fun{aftreg}|(}
-In \R, there are two functions that can estimate AFT regression models, the
-function {\tt aftreg} in the package {\tt eha}, and the function {\tt
-  survreg} in the package {\tt survival}. In the case of no time-varying
-covariates and no left truncation, they fit the same models (given a common
-baseline distribution), but use different parametrizations, which will be
-explained here.
+\end{frame}
 
-\subsection{AFT models in \R}
- We repeat the examples from the proportional hazards section, but with AFT
- models instead.
+%\end{document}
 
- \begin{quote} {Old age mortality} \end{quote}
- For a description of this data set, see above. Here we fit an AFT model
- with the \emp{Weibull} distribution. This should be compared to the proportional
- hazards model with the \emp{Weibull} distribution, see earlier in this chapter.
-<<oldmort6.aft>>=
+%% \begin{frame}[fragile]{Different parametrizations}
+
+%% In \R, there are two functions that can estimate AFT regression models, the
+%% function {\tt aftreg} in the package {\tt eha}, and the function {\tt
+%%   survreg} in the package {\tt survival}. In the case of no time-varying
+%% covariates and no left truncation, they fit the same models (given a common
+%% baseline distribution), but use different parametrizations, which will be
+%% explained here.
+
+\begin{frame}[fragile]{Fertility, Lognormal AFT}
+\scriptsize  
+<<lnaft,results='asis'>>=
+fit.lna <- aftreg(Y ~ age + year + ses, data = f12.cens,
+                  dist = "lognormal")
+dr = drop1(fit.lna, test = "Chisq")
+ltx(fit.lna, dr = dr)
+@   
+
+\end{frame}
+
+\begin{frame}[fragile]{Fertility, Lognormal AFT, ``lifeExp''}
+\scriptsize  
+<<lnaftexp,results='asis'>>=
+fit.lnae <- aftreg(Y ~ age + year + ses, data = f12.cens,
+                  param = 'lifeExp', dist = "lognormal")
+dre = drop1(fit.lnae, test = "Chisq")
+ltx(fit.lnae, dr = dre)
+@   
+
+\end{frame}
+
+\begin{frame}[fragile]{Fertility, Loglogistic AFT, ``lifeExp''}
+\scriptsize  
+<<lnaftexpgomp,results='asis'>>=
+fit.lnaeg <- aftreg(Y ~ age + year + ses, data = f12.cens,
+                  param = 'lifeExp', dist = "loglogistic")
+dreg = drop1(fit.lnaeg, test = "Chisq")
+ltx(fit.lnaeg, dr = dreg)
+@   
+
+\end{frame}
+
+\begin{frame}[fragile]{The baseline hazard function, loglogistic}
+  
+<<basesur>>=
+plot(fit.lnaeg, fn = "haz")
+@   
+
+\end{frame}
+
+\begin{frame}[fragile]{Old age mortality}
+\scriptsize
+<<oldmort6.aft,results='asis'>>=
 fit.w1 <- aftreg(Y ~ sex + civ + birthplace, data = om)
-fit.w1
+dr <- drop1(fit.w1, test = "Chisq")
+ltx(fit.w1, dr = dr)
 @
+\end{frame}
 
-Note that the ``Max. log. likelihood'' is exactly the same, but the
-regression parameter estimates differ. The explanation to this is that (i)
-for the \emp{Weibull} distribution, the AFT and the PH models are the same, and
-(ii) the only problem is that different parametrizations are used. The
-$p$-values and the signs of the parameter estimates should be the same.
-\eex
-\index{Functions!\fun{aftreg}|)}
+\begin{frame}{Comparison PH vs.\ AFT}
+\begin{itemize}
+\item The ``Max. log. likelihood'' is exactly the same, but 
+\item  the
+regression parameter estimates differ. 
+\item The explanation to this is that 
+  \begin{enumerate}
+    \item[(i)]
+for the \emp{Weibull} distribution (only), the \emp{AFT} and the \emp{PH} models
+are the same, and 
+\item[(ii)] the only problem is that \emp{different parametrizations} are used. 
+\end{enumerate}
+\end{itemize}
+\end{frame}
 
 
-\section{Proportional hazards or AFT model?}
+\begin{frame}[fragile]{PH or AFT model?}
 
-The problem of choosing between a proportional hazards and an accelerated
-failure time model (everything else equal) can be solved by comparing the
-AIC\index{AIC} of the models. Since the numbers of parameters are equal in
+\begin{itemize}  
+\item Compare the
+\emp{AIC} of the models. 
+\item Since the numbers of parameters are equal in
 the two
-cases, this amounts to comparing the maximized likelihoods. For instance,
-in the case with \emp{old age mortality}:
+cases, this amounts to comparing the maximized likelihoods.
+\end{itemize}
 
-Let us see what happens with the \emp{Gompertz} AFT model:
-Exactly the same procedure as with the \emp{Weibull} distrbution, but we have to
-specify the \emp{Gompertz} distribution in the call (remember, the \emp{Weibull}
-distribution is the default choice, both for {\tt phreg} and {\tt aftreg}).
+\end{frame}
+
+\begin{frame}[fragile]{Example: The Gompertz distribution}
+  
 <<oldln6.aft>>=
-fit.g <- phreg(Y ~ sex + civ + birthplace, data = om,
+fit.ph <- phreg(Y ~ sex + civ + birthplace, data = om,
                dist = "gompertz")
-fit.g
-
-fit.g1 <- aftreg(Y ~ sex + civ + birthplace, data = om,
+fit.ph$loglik
+fit.aft <- aftreg(Y ~ sex + civ + birthplace, data = om,
                  dist = "gompertz")
-fit.g1
+fit.aft$loglik
 @
 
-Comparing the corresponding result for the proportional hazards and the AFT
-models with the \emp{Gompertz} distribution,
-we find that the maximized log likelihood in the former case is
-\Sexpr{round(fit.g1$loglik[2], 3)}, compared to
-\Sexpr{round(fit.g$loglik[2], 3)} for the latter. This indicates that the
-proportional hazards model
-  fit is better. Note however that we cannot formally test the proportional
-  hazards hypothesis; the two models are not nested.
+So, the \emp{PH} model is the winner (no formal test!).
+\end{frame}
 
-%\section{Piecewise constant hazards}
+\begin{frame}[fragile]{The AFT fit with the Gompertz distribution}
+\scriptsize 
+<<gomfitph,results='asis'>>=
+dr <- drop1(fit.aft, test = "Chisq")
+ltx(fit.aft, test = "Chisq")
+@   
+\end{frame}
 
-\section{Discrete time models}
-There are two ways of looking at discrete duration data; either time is truly
-discrete, i.e, the number of trials until an event occurs, or an
-approximation due to rounding of continuous time data. In a sense all data
-are discrete, because it is impossible to measure anything on a continuous
-scale with infinite precision, but from a practical point of view it is
-reasonable to say that data is discrete when tied events occur
-embarrassingly often.
+\begin{frame}[fragile]{Expected life length}
 
-When working with register data, time is often measured in years which
-makes it necessary and convenient to work with discrete models. A typical
-data format is the so-called \emp{wide} format, where there is one record
-(row) per individual, and measurements for many years. We have so far only
-worked with the \emp{long} format. The data sets created by {\tt survSplit}
-are in long format; there is one record per individual and age category.
-The \R\ work horse in switching back and forth between the long and wide
-formats is the function {\tt reshape}. It may look confusing at first, but
-if data follow some simple rules, it is quite easy to use {\tt reshape}.
+<<expect>>=
+shape <- exp(fit.aft$coefficients["log(shape)"])
+scale <- exp(fit.aft$coefficients["log(scale)"])
+(expected <- integrate(pgompertz, 0, Inf, shape = shape, 
+                       scale = scale, lower.tail = FALSE, 
+                       param = "canonical"))
+@ 
+\end{frame}
 
-The function {\tt reshape} is typically used with \emp{longitudinal data},
-where there are several measurements at different time points for each
-individual. If the data for one individual is registered within one record
-(row), we say that data are in wide format, and if there is one record (row)
-per time (several records per individual), data are in long format. Using
-wide format, the rule is that time-varying variable names must end in a
-numeric value indicating at which time the measurement was taken. For
-instance, if the variable {\tt civ} (civil status) is noted at times 1, 2,
-and 3, there must be variables named {\tt civ.1, civ.2, civ.3},
-respectively. It is optional to use any \emp{separator} between the base
-name ({\tt civ}) and the time, but it should be one character or empty. The
-``.'' is what {\tt reshape} expects by default, so using that form
-simplifies coding somewhat.
+\begin{frame}[fragile]{Calculating ``expected life''}
+  
+<<calexpl>>=
+integrate(pgompertz, 0, Inf, scale = 9.224, 
+          shape = 0.205, param = "canonical", 
+          lower.tail = FALSE)
+@
 
-We start by creating an example data set as an illustration. This is
-accomplished by starting off with the data set {\tt oldmort} in {\tt eha}
-and ``trimming'' it.
-<<trimort6>>=
+General result: \emp{$E(T) = \int_0^\infty S_T(t) dt$}, if $T$ is a lifetime.
+\end{frame}
+
+\begin{frame}[fragile]{Discrete time models}
+
+<<trimort6,echo=FALSE>>=
 data(oldmort)
 om <- oldmort[oldmort$enter == 60, ]
 om <- age.window(om, c(60, 70))
@@ -1224,15 +1294,64 @@ om$birthdate <- om$ses.50 <- NULL
 om1 <- survSplit(om, cut = 61:69, start = "enter", end = "exit",
                  event = "event", episode = "agegrp")
 om1$agegrp <- factor(om1$agegrp, labels = 60:69)
-om1 <- om1[order(om1$id, om1$enter), ]
-head(om1)
+#head(om1)
 @
-We may change the row numbers and recode the {\tt id} so they are easier to read.
-<<recode6>>=
+This is a "remake" of the {\tt oldmort} data set:
+<<recode6,echo=FALSE>>=
+om1$enter <- om1$exit <- NULL
+om1$event <- as.logical(om1$event)
+om1 <- om1[order(om1$id, om1$agegrp), ]
 rownames(om1) <- 1:NROW(om1)
+om1 <- om1[, c(1, 6, 2, 3:5)]
 om1$id <- as.numeric(as.factor(om1$id))
 head(om1)
 @
+
+\end{frame}
+
+\begin{frame}[fragile]{Statistics}
+
+<<statistics>>=
+with(om1, table(agegrp, event))
+@   
+\end{frame}
+
+\begin{frame}[fragile]{Logistic regression}
+\scriptsize
+<<logreg,results='asis'>>=
+fit <- glm(event ~ sex + civ + region + agegrp, 
+           data = om1, family = binomial(link = "cloglog"))
+xtable(summary(fit)$coef, digits = 4)
+@ 
+\end{frame}
+
+\begin{frame}[fragile]{With coxreg}
+\scriptsize  
+<<withcoxreg,results='asis'>>=
+om1$age <- as.numeric(as.character(om1$age))
+fit1 <- coxreg(Surv(age - 0.5, age, event) ~ sex + civ + region, 
+               data = om1, method = "ml")
+dr <- drop1(fit1, test = "Chisq")
+ltx(fit1, dr = dr, digits = 4)
+@ 
+
+\end{frame}
+
+\begin{frame}[fragile]{Plot of survivor function}
+<<plotta>>=
+plot(fit1, fn = "surv")
+@ 
+\end{frame}  
+
+\begin{frame}[fragile]{Plot of hazards}
+<<plotta2>>=
+barplot(fit1$hazards[[1]][, 2], 
+        names.arg = fit1$hazards[[1]][, 1], xlab = "age")
+@ 
+\end{frame}  
+\end{document}
+
+
 This is the long format, each individual has as many records as "presence
 ages". For instance, person No.\ 1 has four records, for the ages 60--63.
 The maximum possible No.\ of records for one individual is 10. We can check
